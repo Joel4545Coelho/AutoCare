@@ -31,7 +31,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100"],
+    origin: "*",
     credentials: true,
   })
 );
