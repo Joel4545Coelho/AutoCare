@@ -9,7 +9,7 @@ const teste = async (req, res) => {
             return res.status(403).json({ message: "Não Autorizado" });
         }
         const userType = res.locals.user.type;
-        res.render("chat/index", {userType});
+        res.render("chat/index", { userType });
     } catch (err) {
         console.error("Erro ao buscar detalhes do chat:", err);
         res.status(500).send("Erro ao buscar detalhes do chat");
@@ -21,7 +21,7 @@ const teste1 = async (req, res) => {
             return res.status(403).json({ message: "Não Autorizado" });
         }
         const userType = res.locals.user.type;
-        res.render("inquerito/index", {userType});
+        res.render("inquerito/index", { userType });
     } catch (err) {
         console.error("Erro ao buscar detalhes do chat:", err);
         res.status(500).send("Erro ao buscar detalhes do chat");
@@ -77,11 +77,11 @@ const logout = async (req, res) => {
 const SignInSub = async (req, res) => {
     try {
         var { username, email, password, type, doenca } = req.body;
-        
+
         doenca = Array.isArray(doenca) ? doenca : [];
 
         const salt = await bcrypt.genSalt(10);
-        var pass = await bcrypt.hashSync(password, salt);
+        const pass = await bcrypt.hash(password, salt);
 
         const newUser = await User.create({
             username: username,
@@ -109,8 +109,8 @@ const getinfo = async (req, res) => {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
     const currentUser = res.locals.user;
     const type = currentUser.type;
-    console.log("type "+ type)
+    console.log("type " + type)
     res.json({ type: type });
 };
 
-module.exports = { index, login, logout, SignIn, SignInSub, teste , teste1, getinfo };
+module.exports = { index, login, logout, SignIn, SignInSub, teste, teste1, getinfo };
