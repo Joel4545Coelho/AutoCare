@@ -22,7 +22,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", "10.1.3.14:8100", "192.168.1.66:8100"],
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -55,6 +55,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 
+app.set('controllers', path.join(__dirname, 'controllers'));
 app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");
 
