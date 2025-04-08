@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+        }
+
+        .chat-container {
+            display: flex;
+            height: 94vh;
+            max-width: auto;
+            margin: auto;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #1f1f1f;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding-top: 20px;
+        }
+
+        .sidebar-header {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .contact-list {
+            overflow-y: scroll;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        .contact-item {
+            padding: 10px 20px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .contact-item:hover {
+            background-color: #00796b;
+        }
+
+        .contact-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .contact-item .name {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .contact-item .last-message {
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        .chat-window {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #181818;
+        }
+
+        .chat-header {
+            background-color: #1f1f1f;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-header .name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .chat-window-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: scroll;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background-color: #333;
+            color: white;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #333;
+            background-color: #1f1f1f;
+        }
+
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-size: 14px;
+            background-color: #333;
+            color: white;
+        }
+
+        .chat-input button {
+            background-color: #00796b;
+            color: white;
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background-color: #004d40;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            color: white;
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .unread-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgb(0, 102, 255);
+            display: none;
+        }
+    </style>
+</head>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container-fluid">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <% if (userType==='paciente' ) { %>
+            <a class="navbar-brand" href="/home">AutoCare</a>
+            <% } else if (userType==='medico' ) { %>
+              <a class="navbar-brand">AutoCare</a>
+              <% } %>
+                <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                  <ul class="navbar-nav">
+                    <% if (userType==='paciente' ) { %>
+                      <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                      </li>
+                      <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                      <% } else if (userType==='medico' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                            pacientes</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                            requests</a></li>
+                        <% } else if (userType==='organizacao' ) { %>
+                          <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                          <% } else if (userType==='admin' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                            </li>
+                            <% } %>
+                              <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+                  </ul>
+                </div>
+        </div>
+      </nav>
+</header>
+
+
+<body>
+    <div class="chat-container">
+        <div class="sidebar">
+            <div class="sidebar-header">Chats</div>
+            <div class="contact-list" id="contactList">
+            </div>
+        </div>
+        <div class="chat-window">
+            <div class="chat-header">
+                <div class="name" id="chatHeaderName">Select a chat</div>
+            </div>
+            <div class="chat-window-content" id="chatWindowContent">
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type a message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="https://cdn.socket.io/4.1.3/socket.io.min.js"></script>
+<script>
+    const getRandomNumber = (min, max) => {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+    const socket = io("http://localhost:25565");
+    let selectedContact = null;
+    let previousMessagesListenerAdded = false;
+    var currentUserId_ = null;
+
+    fetch("/getUsers", {
+        method: 'GET',
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((res) => {
+            if (!res.ok) {
+                throw new Error("Unauthorized");
+            }
+            return res.json();
+        })
+        .then(({ currentUserId, users_M, users, currentUsername }) => {
+            console.log("user_M " + users_M, "users " + users);
+            console.log(currentUsername)
+            this.currentUserId = currentUserId;
+            currentUserId_ = currentUserId;
+
+            const contactList = document.getElementById("contactList");
+            contactList.innerHTML = '';
+
+            if (users_M && users_M.length > 0) {
+                users_M.forEach(user => {
+                    const contactItem = document.createElement("div");
+                    contactItem.classList.add("contact-item");
+                    var RN = getRandomNumber(1, 10);
+                    contactItem.innerHTML = `<img src="${user.avatar || `https://randomuser.me/api/portraits/men/${RN}.jpg`}" alt="${user.username}">
+                <div>
+                    <div class="name">${user.username}</div>
+                    <div class="unread-indicator" id="unreadIndicator-${user._id}"></div>
+                </div>`;
+                    contactItem.onclick = () => openChat(user);
+                    contactList.appendChild(contactItem);
+
+                    socket.emit("checkUnreadMessages", { currentUserId, contactId: user._id });
+                });
+            }
+
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const contactItem = document.createElement("div");
+                    contactItem.classList.add("contact-item");
+                    var RN = getRandomNumber(1, 10);
+                    contactItem.innerHTML = `<img src="${user.avatar || `https://randomuser.me/api/portraits/men/${RN}.jpg`}" alt="${user.username}">
+                <div>
+                    <div class="name">${user.username}</div>
+                    <div class="unread-indicator" id="unreadIndicator-${user._id}"></div>
+                </div>`;
+                    contactItem.onclick = () => openChat(user);
+                    contactList.appendChild(contactItem);
+
+                    socket.emit("checkUnreadMessages", { currentUserId, contactId: user._id });
+                });
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching users:", error);
+        });
+
+
+
+    function openChat(contact) {
+        const unreadIndicator = document.getElementById(`unreadIndicator-${contact._id}`);
+        unreadIndicator.style.display = 'none';
+        selectedContact = contact;
+        document.getElementById("chatHeaderName").textContent = contact.username;
+        document.getElementById("chatWindowContent").innerHTML = '';
+
+        const roomId = [currentUserId, contact._id].sort().join("_");
+
+        if (roomId) {
+            console.log('Emitting joinRoom with roomId:', roomId);
+            socket.emit("joinRoom", roomId);
+
+            socket.off("previousMessages");
+
+            document.getElementById("messageInput").value = '';
+
+            if (!previousMessagesListenerAdded) {
+                socket.on("previousMessages", (messages) => {
+                    messages.forEach(msg => {
+                        const messageContainer = document.createElement("div");
+                        messageContainer.classList.add("message", msg.senderId === currentUserId ? "sent" : "received");
+
+                        const timestamp = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        messageContainer.innerHTML = `<div>${msg.content}</div>
+                        <div class="timestamp">${timestamp}</div>`;
+                        document.getElementById("chatWindowContent").appendChild(messageContainer);
+                    });
+                    scrollToBottom();
+                });
+            } else {
+                console.error('roomId is undefined!');
+            }
+            socket.emit("markMessagesAsSeen", {
+                chatId: roomId,
+                userId: currentUserId,
+            });
+        }
+    }
+
+
+    function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const messageText = messageInput.value.trim();
+
+        if (messageText && selectedContact) {
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            socket.emit("sendMessage", {
+                senderId: currentUserId,
+                receiverId: selectedContact._id,
+                message: messageText
+            });
+
+            const messageContainer = document.createElement("div");
+            messageContainer.classList.add("message", "sent");
+            messageContainer.innerHTML = `<div>${messageText}</div>
+                <div class="timestamp">${timestamp}</div>`;
+            document.getElementById("chatWindowContent").appendChild(messageContainer);
+            messageInput.value = '';
+            scrollToBottom();
+        }
+    }
+
+    socket.on("receiveMessage", (message) => {
+        if (selectedContact && message.senderId === selectedContact._id) {
+            const messageContainer = document.createElement("div");
+            messageContainer.classList.add("message", "received");
+            const timestamp = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageContainer.innerHTML = `<div>${message.content}</div>
+                <div class="timestamp">${timestamp}</div>`;
+            document.getElementById("chatWindowContent").appendChild(messageContainer);
+            scrollToBottom();
+        }
+    });
+
+    setInterval(() => {
+        $.ajax({
+            method: "get",
+            url: "/getUnread",
+            data: {}
+        }).done((res) => {
+            res.unreadMessages.forEach(item => {
+                const unreadIndicator = document.getElementById(`unreadIndicator-${item.senderId}`);
+                unreadIndicator.style.display = 'block';
+            });
+        }).fail((err) => {
+            console.log(err);
+            $("#error_message").text("wrong password").show();
+        })
+    }, 5000)
+
+
+    function scrollToBottom() {
+        const chatWindowContent = document.getElementById("chatWindowContent");
+        chatWindowContent.scrollTop = chatWindowContent.scrollHeight;
+    }
+</script>
+
+</html>

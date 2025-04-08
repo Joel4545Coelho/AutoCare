@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="icon" type="image/png" href="/favicon.png">
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"></script>
+            <style>
+                body {
+                    font-family: 'Poppins', sans-serif;
+                    background-color: #121212 !important;
+                    color: #ffffff !important;
+                    margin: 0;
+                    padding: 0;
+                }
+    
+                h1 {
+                    text-align: center;
+                    font-size: 36px;
+                    color: #00d4ff;
+                    margin-top: 20px;
+                    font-weight: bold;
+                }
+    
+                .container {
+                    width: 80%;
+                    margin: 20px auto;
+                    padding: 20px;
+                    background-color: #1e1e1e;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+                    border-radius: 10px;
+                }
+    
+                label {
+                    font-weight: bold;
+                    font-size: 18px;
+                    display: block;
+                    margin-bottom: 10px;
+                    color: #00d4ff;
+                }
+    
+                select {
+                    width: 100%;
+                    padding: 10px;
+                    font-size: 16px;
+                    border: 1px solid #00d4ff;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                    background: #252525;
+                    color: #ffffff;
+                }
+    
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    background: #2a2a2a;
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+    
+                th {
+                    background-color: #00d4ff;
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                    font-size: 16px;
+                }
+    
+                td {
+                    padding: 12px;
+                    border-bottom: 1px solid #444;
+                    font-size: 14px;
+                    color: #ffffff;
+                }
+    
+                tr:nth-child(even) {
+                    background-color: #1f1f1f;
+                }
+    
+                .table-container {
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    background: #1e1e1e;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+                }
+    
+                .doenca-title {
+                    font-size: 22px;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                    color: #00d4ff;
+                }
+    
+                .paciente-title {
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    color: #cccccc;
+                }
+            </style>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <title>Ver Inqueritos</title>
+    </head>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+            <div class="container-fluid">
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+              </button>
+              <% if (userTypee==='paciente' ) { %>
+                <a class="navbar-brand" href="/home">AutoCare</a>
+                <% } else if (userTypee==='medico' ) { %>
+                  <a class="navbar-brand">AutoCare</a>
+                  <% } %>
+                    <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                      <ul class="navbar-nav">
+                        <% if (userTypee==='paciente' ) { %>
+                          <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                          <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                          <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                          </li>
+                          <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                          <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                          <% } else if (userTypee==='medico' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                                pacientes</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                                requests</a></li>
+                            <% } else if (userTypee==='organizacao' ) { %>
+                              <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                              <% } else if (userTypee==='admin' ) { %>
+                                <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                                </li>
+                                <% } %>
+                                  <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+                      </ul>
+                    </div>
+            </div>
+          </nav>
+    </header>
+    <body>
+        <br>
+        <h1>Questionarios dos Pacientes</h1>
+
+        <div class="container">
+            <label for="clienteDropdown">Escolha um Cliente:</label>
+            <select id="clienteDropdown">
+                <option value="">Selecione um Paciente</option>
+                <% if (userType.length > 0) { %>
+                    <% userType.forEach(function(cliente) { %>
+                        <option value="?cliente=<%= cliente._id %>" 
+                            <%= cliente._id === clienteSelecionado ? 'selected' : '' %>>
+                            <%= cliente.username %> <!-- Agora exibe o username ao invés do ID -->
+                        </option>
+                    <% }); %>
+                <% } else { %>
+                    <option disabled>Nenhum paciente disponível</option>
+                <% } %>
+            </select>
+            <!-- Exibição das doenças do cliente selecionado -->
+            <div id="doencasContainer" style="display: none;">
+                <% if (lista.length > 0) { %>
+                    <% lista.forEach(function(item) { %>
+                        <div class="table-container">
+                            <h2>Doença: <%= item.doenca %></h2>
+                            <h2>Paciente: <%= item.clienteNome %></h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Sintoma</th>
+                                        <th>Escala</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% item.sintomas.forEach(function(sintoma) { %>
+                                        <tr>
+                                            <td><%= sintoma.nome %></td>
+                                            <td><%= sintoma.escala %></td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p>Nenhuma doença associada a este paciente.</p>
+                <% } %>
+            </div>
+        </div>
+    </body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById("clienteDropdown").addEventListener("change", function() {
+            const container = document.getElementById("doencasContainer");
+
+            // Oculta o container e remove os dados antes de carregar novos
+            container.style.display = "none";
+            container.innerHTML = "";
+
+            // Se um paciente foi selecionado, redireciona para carregar os dados dele
+            if (this.value !== "") {
+                window.location.href = this.value;
+            }
+        });
+
+        // Se houver dados carregados, mostra o container
+        if (document.getElementById("doencasContainer").innerHTML.trim() !== "") {
+            document.getElementById("doencasContainer").style.display = "block";
+        }
+    </script>
+</html>

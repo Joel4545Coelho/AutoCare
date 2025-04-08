@@ -1,0 +1,24 @@
+const express = require("express");
+const router = express.Router();
+const auth = require("../middlewares/IsAuth");
+const {listMedics,sendMessageRequest,listMessageRequests,handleMessageRequest,updateProfile,listMedicsN,listMessageRequestsN,sendConsultaRequest,listConsultaRequests,handleConsultaRequest,scheduleConsulta,getCurrentUser
+} = require("../controllers/mrequestController");
+const upload = require("../middlewares/multer"); // Import Multer middleware
+
+router.get("/currentUser", auth, getCurrentUser);
+// Routes for message requests
+router.get("/medics", auth, listMedics); // List all medics
+router.get("/medicsN", auth, listMedicsN);
+router.post("/sendRequest", auth, sendMessageRequest); // Send a message request
+router.get("/messageRequests", auth, listMessageRequests); // List message requests for a medic
+router.get("/messageRequestsN", auth, listMessageRequestsN); // List message requests for a medic
+router.post("/handleRequest", auth, handleMessageRequest); // Handle a message request (accept/decline)
+router.post("/updateProfile", auth, upload.single("avatar"), updateProfile);
+
+// Routes for consulta requests
+router.post("/sendConsultaRequest", auth, sendConsultaRequest); // Send a consulta request
+router.get("/consultaRequests", auth, listConsultaRequests); // List consulta requests for a medic
+router.post("/handleConsultaRequest", auth, handleConsultaRequest); // Handle a consulta request (accept/decline)
+router.post("/scheduleConsulta", auth, scheduleConsulta); // Schedule a consulta
+
+module.exports = router;
