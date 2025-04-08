@@ -1,4 +1,9 @@
 {
+  "name":"autocare",
+  "version":"1.0.0",
+  "description":"autocare backend",
+  "main":"app.js",
+  
   "dependencies": {
     "apexcharts": "^4.4.0",
     "bcrypt": "^5.1.1",
