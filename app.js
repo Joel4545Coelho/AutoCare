@@ -55,6 +55,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 
+app.set('models', path.join(__dirname, 'models'));
+app.set('routes', path.join(__dirname, 'routes'));
 app.set('controllers', path.join(__dirname, 'controllers'));
 app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");
