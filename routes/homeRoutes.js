@@ -16,7 +16,7 @@ router.get('/medicamentos',auth, homeController.getMedicamentos);
 router.post('/add-medicamento',auth, homeController.addMedicamento);
 
 // Rota para excluir medicamentos
-router.get('/delete-medicamento',auth, homeController.deleteMedicamento);
+router.delete('/delete-medicamento/:id', auth, homeController.deleteMedicamento);
 
 // Rota para editar medicamentos
 router.post('/edit-medicamento',auth, homeController.editMedicamento);

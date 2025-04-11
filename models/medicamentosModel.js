@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const medicamentosSchema = new mongoose.Schema({
     clienteId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true
+        required: false
     },
     nome: {
         type: String,
@@ -16,6 +16,15 @@ const medicamentosSchema = new mongoose.Schema({
     quantidade: {
         type: String,
         required: true
+    },
+    data_inicio: {
+        type: String,
+        required: false
+    },
+    data_fim: {
+        type: String,
+        required: false
+
     }
 });
 

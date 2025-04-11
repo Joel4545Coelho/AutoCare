@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
     required: true,
     enum: ["paciente", "admin", "medico", "organizacao"],
   },
-  avatar: { type: String },
+  avatar: { type: Buffer,required: false},
   doenca: { type: Array },
   pacientes_associados: [{ type: mongoose.Schema.Types.ObjectId }],
   medicos_associados: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }], // Use "user" instead of "User"
@@ -30,7 +30,11 @@ const UserSchema = new mongoose.Schema({
       scheduledDateTime: String,
     },
   ],
-});
+  subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subscription'
+    }
+}, { timestamps: true });
 
 const User = mongoose.model("user", UserSchema);
 module.exports = User;

@@ -91,11 +91,20 @@ const addMedicamento = async (req, res) => {
 
 // Função para excluir um medicamento
 const deleteMedicamento = async (req, res) => {
-  console.log(req.query.id);
+  const { id } = req.params;  // Usar req.params para pegar o parâmetro 'id' da URL
+  console.log("ID do medicamento a ser excluído:", id);  // Verificando o id no log
+  
   try {
-    const deleteResult = await Medicamento.findByIdAndDelete(req.query.id);
-    console.log("Deleted documents =>", deleteResult);
-    res.send(deleteResult);
+    const deleteResult = await Medicamento.findByIdAndDelete(id);  // Deletando o medicamento com o id
+    
+    // Verifica se o medicamento foi encontrado e excluído
+    if (!deleteResult) {
+      console.log("Medicamento não encontrado com o ID:", id);
+      return res.status(404).send("Medicamento não encontrado");
+    }
+    
+    console.log("Medicamento excluído com sucesso:", deleteResult);
+    res.status(200).send(deleteResult);  // Envia a resposta com o resultado da exclusão
   } catch (error) {
     console.error("Erro ao excluir medicamento:", error);
     res.status(500).send("Erro ao excluir o medicamento");
@@ -104,29 +113,26 @@ const deleteMedicamento = async (req, res) => {
 
 // Função para editar um medicamento
 const editMedicamento = async (req, res) => {
-  const { _id, nome, hora, quantidade } = req.body;
+  const { _id, nome, hora, quantidade, data_inicio, data_fim } = req.body;
 
-  if (!_id) {
-    return res.status(400).json({ error: "ID do medicamento é obrigatório" });
+  // 👇 Validação do campo hora
+  if (hora && typeof hora !== 'string') {
+    return res.status(400).json({ error: "Formato inválido para 'hora'. Use 'HH:mm,HH:mm'." });
   }
 
   try {
     const updateResult = await Medicamento.findByIdAndUpdate(
-      _id, 
-      { nome, hora, quantidade }, 
+      _id,
+      { nome, hora, quantidade, data_inicio, data_fim },
       { new: true }
     );
 
-    if (!updateResult) {
-      return res.status(404).json({ error: "Medicamento não encontrado" });
-    }
-
-    console.log("Updated documents =>", updateResult);
-    res.json({ message: "Medicamento editado com sucesso", medicamento: updateResult });
+    res.json({ message: "Medicamento atualizado!", medicamento: updateResult });
   } catch (error) {
     console.error("Erro ao editar medicamento:", error);
-    res.status(500).json({ error: "Erro ao editar o medicamento." });
+    res.status(500).json({ error: "Erro ao atualizar o medicamento." });
   }
+  console.log("Hora recebida:", req.body.hora);
 };
 
 module.exports = { getHomeData, addMedicamento, deleteMedicamento, editMedicamento, getMedicamentos, getConsultas, getConsultas2 };
