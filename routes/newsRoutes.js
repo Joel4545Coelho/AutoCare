@@ -9,5 +9,6 @@ router.get('/get_newsN', auth, newsController.indexN);
 router.post('/inserir', auth, upload.single('image'), newsController.inserir); // Handle image upload
 router.delete('/delete/:id', auth, newsController.deletee);
 router.put('/update/:id', auth, upload.single('image'), newsController.update); // Handle image upload
+router.get('/news/:id', newsController.getById);
 
 module.exports = router;
