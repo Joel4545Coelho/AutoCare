@@ -17,31 +17,33 @@ const mrequestRoutes = require("./routes/mrequestRoutes");
 const medicoRoutes = require("./routes/medicoRoutes");
 const forumRoutes = require("./routes/forumRoutes");
 const homeRoutes = require("./routes/homeRoutes");
+const profileroutes = require('./routes/profileroutes');
+const subroutes = require('./routes/subscriptionRoutes');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:5000","http://localhost:8100", "10.1.3.14:8100", "192.168.1.66:8100"],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
-
 const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: "*",
+    origin: ["http://localhost:5000","http://localhost:8100"],
     credentials: true,
   })
 );
 
 const PORT = process.env.PORT || 25565;
-const DATABASE_URL = "mongodb+srv://joelcoelho1309:12345@cluster0.1kdd3py.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const DATABASE_URL = "mongodb://127.0.0.1:27017/autocare";
 
 mongoose
-  .connect(DATABASE_URL, {})
+  .connect(DATABASE_URL, {
+  })
   .then(() => console.log("Conectado ao MongoDB!"))
   .catch((err) => {
     console.error("Erro ao conectar ao MongoDB:", err);
@@ -67,11 +69,13 @@ app.use(doencasRoutes);
 app.use("/perguntas", perguntasRoutes);
 app.use(medicoRoutes);
 app.use(homeRoutes);
+app.use(profileroutes);
+app.use('/assinaturas', subroutes);
 app.get("/pacientes", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// WebSocket with Socket.io
+// WebSocket com Socket.io
 io.on("connection", (socket) => {
   console.log("A user connected: " + socket.id);
 
@@ -102,12 +106,12 @@ io.on("connection", (socket) => {
     await newMessage.save();
 
     io.to(roomId).emit("receiveMessage", {
-      _id: newMessage._id,
+      _id : newMessage._id,
       senderId,
       receiverId,
       content: message,
       createdAt: newMessage.createdAt,
-      room: roomId
+      room:roomId
     });
   });
 
@@ -129,20 +133,20 @@ io.on("connection", (socket) => {
   socket.on("markMessageAsDeleted", async ({ messageId, userId }) => {
     try {
       const message = await Message.findById(messageId);
-
+  
       if (!message) {
         console.log("Message not found");
         return;
       }
-
+  
       message.deleted = true;
       await message.save();
-
+  
       console.log(`Marked message as deleted for message ID: ${messageId} and user: ${userId}`);
     } catch (error) {
       console.error("Error marking message as deleted:", error);
     }
-  });
+  });  
 });
 
 server.listen(PORT, () => {

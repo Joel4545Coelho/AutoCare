@@ -1,7 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/IsAuth");
-const {listMedics,sendMessageRequest,listMessageRequests,handleMessageRequest,updateProfile,listMedicsN,listMessageRequestsN,sendConsultaRequest,listConsultaRequests,handleConsultaRequest,scheduleConsulta,getCurrentUser
+const { listMedics, sendMessageRequest, listMessageRequests,
+    handleMessageRequest, updateProfile, listMedicsN,
+    listMessageRequestsN, sendConsultaRequest, listConsultaRequests,
+    handleConsultaRequest, scheduleConsulta, getCurrentUser,
+    getPatientConsultaRequests, getConsultaDetails, initiatePayment, paymentCallback,
+    getPatientConsultas,checkConsultaUpdates,getMedicConsultas,
+
+
 } = require("../controllers/mrequestController");
 const upload = require("../middlewares/multer"); // Import Multer middleware
 
@@ -20,5 +27,12 @@ router.post("/sendConsultaRequest", auth, sendConsultaRequest); // Send a consul
 router.get("/consultaRequests", auth, listConsultaRequests); // List consulta requests for a medic
 router.post("/handleConsultaRequest", auth, handleConsultaRequest); // Handle a consulta request (accept/decline)
 router.post("/scheduleConsulta", auth, scheduleConsulta); // Schedule a consulta
+router.get('/patientConsultaRequests', auth, getPatientConsultaRequests);
+router.get('/patientConsultas', auth, getPatientConsultas);
+router.get('/consultaDetails/:consultaId', auth, getConsultaDetails);
+router.post('/initiatePayment', auth, initiatePayment);
+router.get('/payment/callback', auth, paymentCallback);
+router.get('/checkConsultaUpdates', auth, checkConsultaUpdates);
+router.get('/medicConsultas', auth, getMedicConsultas);
 
 module.exports = router;

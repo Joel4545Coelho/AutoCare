@@ -18,7 +18,19 @@ const consultasSchema = new mongoose.Schema({
     hora: {
         type: String,
         required: true
-    }
+    },
+    status: {
+        type: String,
+        enum: ['pending_payment', 'scheduled', 'completed', 'canceled'],
+        default: 'pending_payment'
+    },
+    paymentId: String,
+    paymentStatus: {
+        type: String,
+        enum: ['initiated', 'completed', 'failed', 'refunded'],
+        default: null
+    },
+    price: Number,
 });
 
 const Consultas = mongoose.model("consultas", consultasSchema);
