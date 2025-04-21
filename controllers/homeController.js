@@ -7,7 +7,7 @@ const getConsultas = async (req, res) => {
     const consultas = await Consulta.find()
       .populate("medicoId", "username")
 
-    console.log("Consultas encontradas =>", consultas);
+    
     res.json(consultas);
   } catch (error) {
     console.error("Erro ao buscar consultas:", error);
@@ -20,10 +20,21 @@ const getConsultas2 = async (req, res) => {
     const consultas = await Consulta.find()
       .populate("clienteId", "username")
 
-    console.log("Consultas encontradas =>", consultas);
+    
     res.json(consultas);
   } catch (error) {
     console.error("Erro ao buscar consultas:", error);
+    res.status(500).json({ error: "Erro ao buscar consultas" });
+  }
+};
+
+const getConsultasDoMedico = async (req, res) => {
+  try {
+    const { medicoId } = req.params;
+
+    const consultas = await Consulta.find({ medicoId });
+    res.json({ success: true, data: consultas });
+  } catch (error) {
     res.status(500).json({ error: "Erro ao buscar consultas" });
   }
 };
@@ -135,4 +146,4 @@ const editMedicamento = async (req, res) => {
   console.log("Hora recebida:", req.body.hora);
 };
 
-module.exports = { getHomeData, addMedicamento, deleteMedicamento, editMedicamento, getMedicamentos, getConsultas, getConsultas2 };
+module.exports = { getHomeData, addMedicamento, deleteMedicamento, editMedicamento, getMedicamentos, getConsultas, getConsultas2, getConsultasDoMedico };
