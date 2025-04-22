@@ -99,5 +99,21 @@ const update = async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar notícia' });
   }
 };
+const getById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const noticia = await news.findById(id).populate('organization_id');
 
-module.exports = { index, inserir, deletee, update, indexN };
+    if (!noticia) {
+      return res.status(404).json({ message: 'Notícia não encontrada' });
+    }
+
+    res.status(200).json({ noticia });
+  } catch (err) {
+    console.error('Erro ao buscar notícia por ID:', err);
+    res.status(500).json({ message: 'Erro ao buscar notícia' });
+  }
+};
+
+
+module.exports = { index, inserir, deletee, update, indexN, getById  };
