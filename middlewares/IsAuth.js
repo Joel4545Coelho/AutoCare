@@ -24,6 +24,7 @@ const verifyToken = async (req, res, next) =>{
             res.locals.user = null
         }else{
             res.locals.user = user
+            console.log("Conteúdo de res.locals.user:", res.locals.user);
         }
         next()
     }catch(err){

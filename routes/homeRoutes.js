@@ -9,6 +9,7 @@ router.get('/home',auth, homeController.getHomeData);
 
 router.get('/consultas',auth, homeController.getConsultas);
 router.get('/consultas2',auth, homeController.getConsultas2);
+router.get('/consultasMedico/:medicoId',auth, homeController.getConsultasDoMedico);
 
 router.get('/medicamentos',auth, homeController.getMedicamentos);
 
