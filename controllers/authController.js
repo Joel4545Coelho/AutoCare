@@ -39,32 +39,36 @@ const SignIn = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    var email = req.body.email;
-    var password = req.body.password;
-    var user = await User.findOne({ email: email });
-
-    if (!user) {
-        return res.status(400).send({ message: "Usuário não encontrado" });
-    }
-
-    if (user && await bcrypt.compare(password, user.password)) {
-        var token = jwt.sign(
-            { id: user._id.toString(), email: user.email },
-            jwtkey,
-            { expiresIn: "1d" }
-        );
-        res.cookie("auth", token);
-
-        return res.status(200).send({
-            message: "Login bem-sucedido",
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            type: user.type,
-            doenca: user.doenca || []
-        });
-    } else {
-        return res.status(400).send({ message: "Usuário ou senha inválidos" });
+    try {
+        var email = req.body.email;
+        var password = req.body.password;
+        var user = await User.findOne({ email: email });
+        console.log(email +"    "+ password)
+        if (!user) {
+            return res.status(400).send({ message: "Usuário não encontrado" });
+        }
+    
+        if (user && await bcrypt.compare(password, user.password)) {
+            var token = jwt.sign(
+                { id: user._id.toString(), email: user.email },
+                jwtkey,
+                { expiresIn: "1d" }
+            );
+            res.cookie("auth", token);
+    
+            return res.status(200).send({
+                message: "Login bem-sucedido",
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                type: user.type,
+                doenca: user.doenca || []
+            });
+        } else {
+            return res.status(400).send({ message: "Usuário ou senha inválidos" });
+        } 
+    } catch (error) {
+        console.log(error.message)
     }
 };
 
