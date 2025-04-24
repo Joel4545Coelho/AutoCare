@@ -1,35 +1,42 @@
-const User = require("../models/user")
-const { parse } = require("cookie")
-var jwt = require("jsonwebtoken")
-const jwtkey = "zzzzzzzzzz"
+const User = require("../models/user");
+const { parse } = require("cookie");
+const jwt = require("jsonwebtoken");
+const jwtkey = "zzzzzzzzzz";
 
-const blockAuthenticated = (req, res, next) => {
-    if (req.cookies && req.cookies.auth) {
-        return res.status(403).send("Acesso negado! Você já está autenticado.");
+const verifyToken = async (req, res, next) => {
+  let token = null;
+
+  // 1. Try to get token from cookies
+  const cookies = parse(req.headers.cookie || "");
+  if (cookies.auth) {
+    token = cookies.auth;
+  }
+
+  // 2. If not in cookies, try to get from Authorization header
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    res.locals.user = null;
+    return res.status(401).json({ message: "Token not provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtkey); // 👈 use verify, not decode!
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      res.locals.user = null;
+      return res.status(401).json({ message: "User not found" });
     }
+
+    res.locals.user = user;
     next();
+  } catch (err) {
+    console.error("JWT verification error:", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
-
-const verifyToken = async (req, res, next) =>{
-    const cookies = parse(req.headers.cookie || "")
-    const token = cookies.auth
-    if (!token){
-        res.locals.user = null
-        return next()
-    } 
-    try{
-        const decoded = jwt.decode(token, jwtkey)
-        const user = await User.findById(decoded.id)
-        if(!user){
-            res.locals.user = null
-        }else{
-            res.locals.user = user
-            console.log("Conteúdo de res.locals.user:", res.locals.user);
-        }
-        next()
-    }catch(err){
-        
-    }
-}
 
 module.exports = verifyToken;
