@@ -3,13 +3,6 @@ const { parse } = require("cookie")
 var jwt = require("jsonwebtoken")
 const jwtkey = "zzzzzzzzzz"
 
-const blockAuthenticated = (req, res, next) => {
-    if (req.cookies && req.cookies.auth) {
-        return res.status(403).send("Acesso negado! Você já está autenticado.");
-    }
-    next();
-};
-
 const verifyToken = async (req, res, next) =>{
     const cookies = parse(req.headers.cookie || "")
     const token = cookies.auth
