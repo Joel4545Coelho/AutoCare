@@ -43,19 +43,25 @@ const login = async (req, res) => {
         var email = req.body.email;
         var password = req.body.password;
         var user = await User.findOne({ email: email });
-        console.log(email +"    "+ password)
+        console.log(email + "    " + password)
         if (!user) {
             return res.status(400).send({ message: "Usuário não encontrado" });
         }
-    
+
         if (user && await bcrypt.compare(password, user.password)) {
             var token = jwt.sign(
                 { id: user._id.toString(), email: user.email },
                 jwtkey,
                 { expiresIn: "1d" }
             );
-            res.cookie("auth", token);
-    
+            res.cookie("auth", token, {
+                httpOnly: true,  // Impede acesso via JavaScript no frontend (proteção contra XSS)
+                secure: false,  // HTTPS apenas em produção
+                sameSite: "Lax",  // Permite cookies entre domínios diferentes
+                path: "/", // Permite que esta cookie seja usada em todas as routes
+                maxAge: 24 * 60 * 60 * 1000,  // 1d);
+            });
+
             return res.status(200).send({
                 message: "Login bem-sucedido",
                 _id: user._id,
@@ -66,7 +72,7 @@ const login = async (req, res) => {
             });
         } else {
             return res.status(400).send({ message: "Usuário ou senha inválidos" });
-        } 
+        }
     } catch (error) {
         console.log(error.message)
     }
