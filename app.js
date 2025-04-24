@@ -25,7 +25,7 @@ const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", "10.1.3.14:8100", "192.168.1.66:8100", DATABASE_URL],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL],
     methods: ["GET", "POST"],
     credentials: true,
   },
