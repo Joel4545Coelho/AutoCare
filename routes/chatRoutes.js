@@ -3,7 +3,7 @@ const { getUsers, getUnreadMessages } = require('../controllers/chatcontroller')
 const router = express.Router();
 const auth = require("../middlewares/IsAuth")
 
-router.get('/getUsers', auth, getUsers);
-router.get('/getUnread', auth, getUnreadMessages);
+router.get('/getUsers', getUsers);
+router.get('/getUnread', getUnreadMessages);
 
 module.exports = router;
