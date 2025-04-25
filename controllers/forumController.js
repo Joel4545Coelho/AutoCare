@@ -11,11 +11,11 @@ const listPosts = async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .populate('author', 'username type')
+      .populate('author', 'username type avatar')
       .populate({
         path: 'comments',
         populate: [
-          { path: 'author', select: 'username type' },
+          { path: 'author', select: 'username type avatar' },
           { path: 'replies', populate: { path: 'author', select: 'username type' } },
         ],
       });
@@ -37,11 +37,11 @@ const listPostsN = async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .populate('author', 'username type')
+      .populate('author', 'username type avatar')
       .populate({
         path: 'comments',
         populate: [
-          { path: 'author', select: 'username type' },
+          { path: 'author', select: 'username type avatar' },
           { path: 'replies', populate: { path: 'author', select: 'username type' } },
         ],
       });
@@ -86,7 +86,7 @@ const createPost = async (req, res) => {
 
     const savedPost = await newPost.save();
     const populatedPost = await Post.findById(savedPost._id)
-      .populate('author', 'username type');
+      .populate('author', 'username type avatar');
 
     res.json({ 
       success: true, 
@@ -147,7 +147,7 @@ const createComment = async (req, res) => {
         await parent.save();
       }
     }
-    const populatedComment = await Comment.findById(comment._id).populate('author', 'username type');
+    const populatedComment = await Comment.findById(comment._id).populate('author', 'username type avatar');
 
     res.json({ success: true, comment: populatedComment });
   } catch (err) {
@@ -193,7 +193,7 @@ const createReply = async (req, res) => {
 
     parentComment.replies.push(reply._id);
     await parentComment.save();
-    const populatedReply = await Comment.findById(reply._id).populate('author', 'username type');
+    const populatedReply = await Comment.findById(reply._id).populate('author', 'username type avatar');
 
     return res.status(201).json({ success: true, reply: populatedReply });
   } catch (err) {
@@ -234,7 +234,7 @@ const editPost = async (req, res) => {
 
     await post.save();
     const populatedPost = await Post.findById(post._id)
-      .populate('author', 'username type');
+      .populate('author', 'username type avatar');
       
     res.json({ 
       success: true, 
@@ -267,7 +267,7 @@ const editComment = async (req, res) => {
       comment.image = req.file.path;
     }
     await comment.save();
-    const populatedComment = await Comment.findById(comment._id).populate('author', 'username type');
+    const populatedComment = await Comment.findById(comment._id).populate('author', 'username type avatar');
     res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating comment", error: err.message });
@@ -290,7 +290,7 @@ const editReply = async (req, res) => {
       reply.image = req.file.path;
     }
     await reply.save();
-    const populatedReply = await Comment.findById(reply._id).populate('author', 'username type');
+    const populatedReply = await Comment.findById(reply._id).populate('author', 'username type avatar');
     res.json({ success: true, reply: populatedReply });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating reply", error: err.message });
