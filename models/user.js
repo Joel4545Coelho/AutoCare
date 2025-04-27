@@ -33,7 +33,12 @@ const UserSchema = new mongoose.Schema({
   subscription: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Subscription'
-    }
+    },
+    sublevel: {
+      type: String,
+      enum: ["free", "basic", "premium", "medico"],
+      default: "free"
+    },
 }, { timestamps: true });
 
 const User = mongoose.model("user", UserSchema);

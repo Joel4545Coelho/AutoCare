@@ -94,10 +94,17 @@ exports.assinarPlano = async (req, res) => {
       dataInicio,
       dataFim,
       status: 'active',
-      paymentStatus: 'pending'
+      paymentStatus: 'pending',
+      level: plano.level // Add the level from the plan
     });
 
     await novaAssinatura.save();
+
+    // Update user's sublevel
+    await User.findByIdAndUpdate(currentUser._id, { 
+      sublevel: plano.level,
+      subscription: novaAssinatura._id
+    });
 
     res.json({ 
       success: true,
@@ -125,6 +132,12 @@ exports.cancelarPlano = async (req, res) => {
 
     assinatura.status = 'canceled';
     await assinatura.save();
+
+    // Reset user's sublevel to free
+    await User.findByIdAndUpdate(currentUser._id, { 
+      sublevel: 'free',
+      subscription: null
+    });
 
     res.json({ success: true, message: 'Assinatura cancelada com sucesso' });
   } catch (error) {

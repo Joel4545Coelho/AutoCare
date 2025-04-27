@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
-const planoSchema = new mongoose.Schema({
-  nome: { type: String, required: true },
-  descricao: { type: String, required: true },
-  preco: { type: Number, required: true },
-  duracao: { type: String, enum: ['mensal', 'trimestral', 'anual'], required: true },
-  beneficios: [{ type: String }],
-  ativo: { type: Boolean, default: true }
+const PlanoSchema = new mongoose.Schema({
+  nome: String,
+  descricao: String,
+  preco: Number,
+  beneficios: [String],
+  duracao: { type: String, enum: ['mensal', 'trimestral', 'anual'] },
+  ativo: { type: Boolean, default: true },
+  level: { type: String, enum: ["basic", "premium", "medico"], required: true }
 });
 
-module.exports = mongoose.model('Plano', planoSchema);
+module.exports = mongoose.model('Plano', PlanoSchema);
