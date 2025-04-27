@@ -4,6 +4,7 @@ const user = require('../models/user');
 
 const listPosts = async (req, res) => {
   const currentUser = res.locals.user;
+  console.log(currentUser)
   if (!currentUser) {
     return res.status(401).json({ error: "Unauthorized: User not authenticated" });
   }
