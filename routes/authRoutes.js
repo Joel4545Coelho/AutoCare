@@ -5,7 +5,7 @@ const auth = require("../middlewares/IsAuth")
 const router = express.Router();
 
 router.get("/getinfo", auth , getinfo)
-router.get("/",auth, index);
+router.get("/", index);
 router.post("/login", login);
 router.get("/logout", logout);
 router.get("/SignUp", SignIn);
