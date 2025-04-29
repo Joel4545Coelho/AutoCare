@@ -17,4 +17,6 @@ const getReceitas = async (req, res) => {
       res.status(500).json({ error: "Erro ao buscar receitas" });
     }
   };
+
+  module.exports = {getReceitas}
   
