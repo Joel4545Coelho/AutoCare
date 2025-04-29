@@ -5,49 +5,48 @@ const path = require('path');
 
 exports.updateAvatar = async (req, res) => {
   try {
-    // Verifique se o arquivo foi enviado
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No image file provided' });
     }
 
-    // Acesse o id do usuário a partir do corpo da requisição
     const { id } = req.body;
 
-    // Encontre o usuário no banco de dados
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Defina o diretório de upload para salvar a imagem
-    const uploadDir = path.join(__dirname, '../uploads');
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(__dirname, '../../uploads');
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir); // Cria o diretório de uploads se não existir
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Crie o nome do arquivo (com base no nome original ou gerado)
+    // Generate unique filename
     const fileName = `${Date.now()}-${req.file.originalname}`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Mova o arquivo para o diretório de uploads
+    // Move the file to uploads directory
     fs.renameSync(req.file.path, filePath);
 
-    // A URL do avatar que será salva no banco de dados
+    // Construct the URL that will be accessible from the frontend
     const photoUrl = `/uploads/${fileName}`;
 
-    // Atualize o campo avatar do usuário com a URL da imagem
+    // Update user's avatar
     user.avatar = photoUrl;
-    user.updatedAt = Date.now();
-
-    // Salve o usuário com a nova URL do avatar
     await user.save();
 
-    // Retorna uma resposta de sucesso com a URL da imagem
-    res.json({ success: true, message: 'Avatar updated successfully', avatar: photoUrl });
+    res.json({ 
+      success: true, 
+      message: 'Avatar updated successfully', 
+      avatar: photoUrl 
+    });
   } catch (error) {
-    // Captura erros e retorna um erro 500 se algo falhar no backend
     console.error('Error updating avatar:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 };
 
