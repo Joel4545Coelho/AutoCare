@@ -5,12 +5,12 @@ const ReceitaSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  medico: {
+  medicoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // ou 'Doctor', dependendo da tua estrutura
     required: true
   },
-  paciente: {
+  pacienteId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // ou 'Patient'
     required: true
