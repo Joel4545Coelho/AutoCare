@@ -5,6 +5,7 @@ const auth = require("../middlewares/IsAuth")
 
 
 
-router.get('/receitas_medico/:pacienteId',auth, receita_medico.getReceitas);
+router.get('/receitas_medico/:pacienteId?', auth, receita_medico.getReceitas);
+router.post('/add_receita', auth,  receita_medico.addReceita);
 
 module.exports = router;
