@@ -4,7 +4,7 @@ exports.getReceitasByPaciente = async (req, res) => {
   const { pacienteId } = req.params;
 
   try {
-    const receitas = await Receita.find({ paciente: pacienteId })
+    const receitas = await Receita.find({ pacienteId: pacienteId })
       .populate('medico', 'nome') // opcional: popula dados do médico
       .sort({ createdAt: -1 }); // mais recentes primeiro
 
