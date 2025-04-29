@@ -12,7 +12,8 @@ exports.getPlanos = async (req, res) => {
             preco: 1,
             duracao: '$duracao',
             beneficios: 1,
-            ativo: 1
+            ativo: 1,
+            level:'level'
           }
         }
       ]);
