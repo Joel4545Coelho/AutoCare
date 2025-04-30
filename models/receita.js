@@ -7,12 +7,12 @@ const ReceitaSchema = new mongoose.Schema({
   },
   medicoId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', 
+    ref: 'user', 
     required: true
   },
   pacienteId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', 
+    ref: 'user', 
     required: true
   },
   file: {

@@ -7,9 +7,9 @@ const getReceitas = async (req, res) => {
   
       let receitas;
       if (pacienteId) {
-        receitas = await receitaMedico.find({ pacienteId });
+        receitas = await receitaMedico.find({ pacienteId }).populate('pacienteId', 'username');
       } else {
-        receitas = await receitaMedico.find(); 
+        receitas = await receitaMedico.find().populate('pacienteId', 'username');
       }
   
       res.json({ success: true, data: receitas });
