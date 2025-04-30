@@ -2,51 +2,60 @@ const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const { Binary } = require('mongodb');
+
+// Configure storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../uploads');
+    // Create directory if it doesn't exist
+    fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 exports.updateAvatar = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image file provided' });
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const { id } = req.body;
+    // Read the file into base64
+    const filePath = req.file.path;
+    const fileData = fs.readFileSync(filePath);
+    const base64Data = fileData.toString('base64');
 
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    // Store as binary in MongoDB
+    const user = await User.findByIdAndUpdate(
+      req.body.id,
+      { 
+        avatar: Binary.createFromBase64(base64Data),
+        avatarContentType: req.file.mimetype 
+      },
+      { new: true }
+    );
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    // Clean up the temporary file
+    fs.unlinkSync(filePath);
 
-    // Generate unique filename
-    const fileName = `${Date.now()}-${req.file.originalname}`;
-    const filePath = path.join(uploadDir, fileName);
-
-    // Move the file to uploads directory
-    fs.renameSync(req.file.path, filePath);
-
-    // Construct the URL that will be accessible from the frontend
-    const photoUrl = `/uploads/${fileName}`;
-
-    // Update user's avatar
-    user.avatar = photoUrl;
-    await user.save();
-
-    res.json({ 
-      success: true, 
-      message: 'Avatar updated successfully', 
-      avatar: photoUrl 
+    // Return the avatar as base64 URL
+    res.json({
+      success: true,
+      avatar: `data:${req.file.mimetype};base64,${base64Data}`
     });
   } catch (error) {
-    console.error('Error updating avatar:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
+    console.error('Avatar update error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
