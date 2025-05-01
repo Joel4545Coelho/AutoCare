@@ -6,7 +6,7 @@ const auth = require("../middlewares/IsAuth");
 router.get("/inqueritosGET", auth, InqueritoG);
 router.post("/inquerito", auth, createInquerito);
 router.get("/getinqueritos", auth, getInqueritos);
-router.get("/doencas/:doenca", auth,getPerguntasByDoenca);
+router.get("/doencas/:doenca",getPerguntasByDoenca);
  
  
 module.exports = router;

@@ -20,6 +20,7 @@ const homeRoutes = require("./routes/homeRoutes");
 const profileroutes = require('./routes/profileroutes');
 const subroutes = require('./routes/subscriptionRoutes');
 const receitasP = require('./routes/receitasPaciente');
+const receitas_medico = require('./routes/receitas_medico')
 
 const app = express();
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
@@ -73,6 +74,7 @@ app.use(homeRoutes);
 app.use(profileroutes);
 app.use(receitasP);
 app.use('/assinaturas', subroutes);
+app.use(receitas_medico)
 app.get("/pacientes", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

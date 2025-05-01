@@ -12,13 +12,25 @@ const ReceitaSchema = new mongoose.Schema({
   },
   pacienteId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'user', // ou 'Patient'
+    ref: 'user', 
     required: true
   },
   file: {
-    type: String, // URL do ficheiro (podes usar upload para armazenar no servidor ou cloud)
-    required: true
+    type: String, // Armazenaremos o caminho do arquivo
+    required: false // Tornamos opcional para flexibilidade
+  },
+  fileName: {
+    type: String,
+    required: false
+  },
+  fileType: {
+    type: String,
+    required: false
+  },
+  fileSize: {
+    type: Number,
+    required: false
   }
-}, { timestamps: true }); // cria automaticamente createdAt e updatedAt
+}, { timestamps: true });
 
 module.exports = mongoose.model('Receita', ReceitaSchema);
