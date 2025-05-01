@@ -52,9 +52,6 @@ exports.assinarPlano = async (req, res) => {
   const currentUser = res.locals.user;
   const { planoId } = req.body;
 
-  if (currentUser.type !== 'paciente') {
-    return res.status(403).json({ success: false, message: 'Apenas pacientes podem assinar planos' });
-  }
 
   try {
     // Check if user already has an active subscription
