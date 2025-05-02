@@ -36,7 +36,6 @@ const io = new Server(server, {
 app.use(
   cors({
     origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com'],
-    methods: ["GET", "POST"],
     credentials: true,
   })
 );
