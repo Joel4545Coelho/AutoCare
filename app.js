@@ -1,4 +1,3 @@
-const AWS = require('aws-sdk');
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -28,86 +27,16 @@ const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, "https://autocare-gj6v.onrender.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com"],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
-
-//INICIO DO BUCKET
-
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION // e.g., 'us-east-1'
-});
-
-app.get('/buckets', async (req, res) => {
-  try {
-    const data = await s3.listBuckets().promise();
-    res.json(data.Buckets);
-  } catch (err) {
-    console.error('Error listing buckets:', err);
-    res.status(500).send('Error listing buckets');
-  }
-});
-
-// Example route to upload a file
-app.post('/upload', express.json(), async (req, res) => {
-  const { fileName, fileContent } = req.body;
-  
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileName,
-    Body: fileContent
-  };
-
-  try {
-    const data = await s3.upload(params).promise();
-    res.json({ message: 'File uploaded successfully', location: data.Location });
-  } catch (err) {
-    console.error('Error uploading file:', err);
-    res.status(500).send('Error uploading file');
-  }
-});
-
-app.get('/download/:fileName', async (req, res) => {
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: req.params.fileName
-  };
-
-  try {
-    const data = await s3.getObject(params).promise();
-    res.send(data.Body);
-  } catch (err) {
-    console.error('Error downloading file:', err);
-    res.status(500).send('Error downloading file');
-  }
-});
-
-app.delete('/delete/:fileName', async (req, res) => {
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: req.params.fileName
-  };
-
-  try {
-    await s3.deleteObject(params).promise();
-    res.json({ message: 'File deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting file:', err);
-    res.status(500).send('Error deleting file');
-  }
-});
-
-//FIM DO BUCKET
-
 const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-gj6v.onrender.com'],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com'],
     credentials: true,
   })
 );
@@ -122,12 +51,6 @@ mongoose
     console.error("Erro ao conectar ao MongoDB:", err);
     process.exit(1);
   });
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET");
-  next();
-});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -187,12 +110,12 @@ io.on("connection", (socket) => {
     await newMessage.save();
 
     io.to(roomId).emit("receiveMessage", {
-      _id: newMessage._id,
+      _id : newMessage._id,
       senderId,
       receiverId,
       content: message,
       createdAt: newMessage.createdAt,
-      room: roomId
+      room:roomId
     });
   });
 
@@ -214,20 +137,20 @@ io.on("connection", (socket) => {
   socket.on("markMessageAsDeleted", async ({ messageId, userId }) => {
     try {
       const message = await Message.findById(messageId);
-
+  
       if (!message) {
         console.log("Message not found");
         return;
       }
-
+  
       message.deleted = true;
       await message.save();
-
+  
       console.log(`Marked message as deleted for message ID: ${messageId} and user: ${userId}`);
     } catch (error) {
       console.error("Error marking message as deleted:", error);
     }
-  });
+  });  
 });
 
 server.listen(PORT, () => {
