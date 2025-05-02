@@ -33,12 +33,6 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-app.use(
-  cors({
-    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com'],
-    credentials: true,
-  })
-);
 
 //INICIO DO BUCKET
 
@@ -110,6 +104,13 @@ app.delete('/delete/:fileName', async (req, res) => {
 //FIM DO BUCKET
 
 const Message = require("./models/message");
+
+app.use(
+  cors({
+    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-gj6v.onrender.com'],
+    credentials: true,
+  })
+);
 
 const PORT = process.env.PORT || 25565;
 
