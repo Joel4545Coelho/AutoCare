@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -28,7 +29,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","http://10.1.3.14:8100"],
-    methods: ["GET", "POST"],
+    methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
 });
@@ -37,6 +38,7 @@ const Message = require("./models/message");
 app.use(
   cors({
     origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"http://10.1.3.14:8100"],
+    methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
 );

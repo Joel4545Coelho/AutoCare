@@ -4,11 +4,12 @@
   "description": "autocare backend",
   "main": "app.js",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.803.0",
     "apexcharts": "^4.4.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "body": "^5.1.0",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "fullcalendar": "^6.1.15",

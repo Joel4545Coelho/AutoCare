@@ -1,6 +1,7 @@
 const receitaMedico = require("../models/receita");
 const fs = require('fs');
 const path = require('path');
+const { uploadToS3 } = require("../utils/s3");
 
 const getReceitas = async (req, res) => {
   try {
@@ -28,6 +29,8 @@ const addReceita = async (req, res) => {
       return res.status(400).json({ error: "Nenhum arquivo foi enviado." });
     }
 
+    await uploadToS3(file.buffer, fileName, file.mimetype);
+    
     const novaReceita = new receitaMedico({
       description,
       medicoId,
