@@ -12,7 +12,7 @@ const listPosts = async (req, res) => {
   try {
     const { tags } = req.query;
     let query = {};
-    
+
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       query = { tags: { $in: tagArray } };
@@ -27,7 +27,15 @@ const listPosts = async (req, res) => {
           { path: 'author', select: 'username type avatar' },
           { path: 'replies', populate: { path: 'author', select: 'username type' } },
         ],
-      });
+      })
+      .lean();
+
+    const postsWithTags = posts.map(post => ({
+      ...post,
+      tags: post.tags || []
+    }));
+
+    res.status(200).json({ success: true, posts: postsWithTags });
 
     res.status(200).json({ success: true, posts });
   } catch (err) {
@@ -55,12 +63,12 @@ const listPostsN = async (req, res) => {
         ],
       });
 
-      res.render("Forum/index", { success: true, posts, userType });
+    res.render("Forum/index", { success: true, posts, userType });
   } catch (err) {
     console.error('Error fetching posts:', err);
     res.status(500).json({ success: false, message: 'Error fetching posts' });
   }
-}; 
+};
 
 const createPost = async (req, res) => {
   try {
@@ -78,9 +86,9 @@ const createPost = async (req, res) => {
 
     // Validate required fields
     if (!title || !content) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Title and content are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Title and content are required'
       });
     }
 
@@ -96,16 +104,16 @@ const createPost = async (req, res) => {
     const populatedPost = await Post.findById(savedPost._id)
       .populate('author', 'username type avatar');
 
-    res.json({ 
-      success: true, 
-      post: populatedPost 
+    res.json({
+      success: true,
+      post: populatedPost
     });
   } catch (err) {
     console.error('Error creating post:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error creating post', 
-      error: err.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error creating post',
+      error: err.message
     });
   }
 };
@@ -133,7 +141,7 @@ const editPost = async (req, res) => {
     post.title = title || post.title;
     post.content = content || post.content;
     post.tags = tags || post.tags; // Update tags
-    
+
     // Handle image update
     if (req.file) {
       post.image = req.file.path;
@@ -144,17 +152,17 @@ const editPost = async (req, res) => {
     await post.save();
     const populatedPost = await Post.findById(post._id)
       .populate('author', 'username type avatar');
-      
-    res.json({ 
-      success: true, 
-      message: "Post updated successfully", 
-      post: populatedPost 
+
+    res.json({
+      success: true,
+      message: "Post updated successfully",
+      post: populatedPost
     });
   } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: "Error updating post", 
-      error: err.message 
+    res.status(500).json({
+      success: false,
+      message: "Error updating post",
+      error: err.message
     });
   }
 };
