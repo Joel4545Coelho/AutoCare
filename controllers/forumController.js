@@ -34,7 +34,9 @@ const listPosts = async (req, res) => {
       ...post,
       tags: post.tags || []
     }));
-
+    console.log('Raw request body:', req.body);
+    console.log('Received tags:', req.body.tags);
+    console.log('Parsed tags:', tags);
     res.status(200).json({ success: true, posts: postsWithTags });
 
     res.status(200).json({ success: true, posts });
