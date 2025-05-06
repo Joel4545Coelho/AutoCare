@@ -30,7 +30,7 @@ const addReceita = async (req, res) => {
       medicoId,
       pacienteId,
       fileUrl: req.file.location, // S3 public URL
-      fileName: req.file.uniqueSuffix,
+      fileName: req.file.key,
       fileType: req.file.mimetype,
       fileSize: req.file.size
     });
