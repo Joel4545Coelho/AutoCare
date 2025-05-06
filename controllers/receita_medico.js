@@ -23,19 +23,16 @@ const getReceitas = async (req, res) => {
 const addReceita = async (req, res) => {
   try {
     const { description, medicoId, pacienteId } = req.body;
-    
-    // Verifica se o arquivo foi enviado
+
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum arquivo foi enviado." });
     }
 
-    await uploadToS3(file.buffer, fileName, file.mimetype);
-    
     const novaReceita = new receitaMedico({
       description,
       medicoId,
       pacienteId,
-      file: req.file.path, // Caminho do arquivo salvo
+      fileUrl: req.file.location, // S3 public URL
       fileName: req.file.originalname,
       fileType: req.file.mimetype,
       fileSize: req.file.size
@@ -43,23 +40,12 @@ const addReceita = async (req, res) => {
 
     await novaReceita.save();
 
-    res.status(201).json({ 
-      success: true, 
-      data: {
-        ...novaReceita.toObject(),
-        fileUrl: `${req.protocol}://${req.get('host')}/${req.file.path.replace(/\\/g, '/')}`
-      }
+    res.status(201).json({
+      success: true,
+      data: novaReceita
     });
   } catch (error) {
     console.error("Erro ao adicionar receita:", error);
-    
-    // Se ocorrer um erro, remove o arquivo enviado
-    if (req.file) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error("Erro ao remover arquivo:", err);
-      });
-    }
-    
     res.status(500).json({ error: "Erro ao adicionar receita." });
   }
 };

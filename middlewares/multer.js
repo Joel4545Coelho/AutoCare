@@ -1,62 +1,51 @@
 const multer = require('multer');
-const fs = require('fs');
+const multerS3 = require('multer-s3');
+const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
+require('dotenv').config(); // Ensure AWS credentials are available
 
-// Configuração dos diretórios
-const uploadsDir = path.join(__dirname, '../uploads');
-const receitasDir = path.join(uploadsDir, 'receitas');
-
-// Cria os diretórios se não existirem
-[uploadsDir, receitasDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-// Configuração de armazenamento
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, receitasDir);
+// Initialize the S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `receita-${uniqueSuffix}${ext}`;
-    cb(null, filename);
-  }
 });
 
-// Filtro de arquivos permitidos - mais flexível
+// File filter (same as before)
 const fileFilter = (req, file, cb) => {
-  // Lista de tipos MIME permitidos
   const allowedMimeTypes = [
     'application/pdf',
     'image/jpeg',
     'image/png',
     'image/jpg'
   ];
-
-  // Verifica se o tipo MIME está na lista permitida
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    return cb(null, true);
-  }
-
-  // Se o tipo MIME não for reconhecido, verifica pela extensão
   const ext = path.extname(file.originalname).toLowerCase();
-  if (['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
+
+  if (allowedMimeTypes.includes(file.mimetype) || ['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
     return cb(null, true);
   }
 
-  // Se nenhum dos critérios for atendido, rejeita o arquivo
   cb(new Error('Tipo de arquivo inválido. São permitidos apenas PDF, JPG, JPEG e PNG'), false);
 };
 
-// Configuração do Multer
+// Multer S3 storage configuration
 const upload = multer({
-  storage: storage,
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.AWS_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    acl: 'public-read', // or 'private' if needed
+    key: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `aws-${uniqueSuffix}${ext}`);
+    }
+  }),
   fileFilter: fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // Limite de 10MB
+    fileSize: 10 * 1024 * 1024, // 10 MB
     files: 1
   }
 });
