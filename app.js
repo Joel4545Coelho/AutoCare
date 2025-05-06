@@ -26,7 +26,7 @@ const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-6ij1.onrender.com"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -35,7 +35,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com'],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-6ij1.onrender.com'],
     credentials: true,
   })
 );
