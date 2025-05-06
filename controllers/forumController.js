@@ -77,14 +77,21 @@ const createPost = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized: User not authenticated" });
     }
 
-    // Debugging: Log what's being received
-    console.log('Request body:', req.body);
-    console.log('Request file:', req.file);
+    // Parse tags from the form data
+    let tags = [];
+    if (req.body.tags) {
+      try {
+        // If tags were sent as a JSON string, parse it
+        tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
+      } catch (e) {
+        console.error('Error parsing tags:', e);
+        tags = [];
+      }
+    }
 
-    const { title, content, tags } = req.body; // Add tags to destructuring
+    const { title, content } = req.body;
     const author = currentUser._id;
 
-    // Validate required fields
     if (!title || !content) {
       return res.status(400).json({
         success: false,
@@ -95,7 +102,7 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       title,
       content,
-      tags: tags || [], // Add tags with empty array as default
+      tags, // Use the parsed tags
       image: req.file ? req.file.path : null,
       author,
     });
@@ -126,7 +133,18 @@ const editPost = async (req, res) => {
 
   try {
     const { postId } = req.params;
-    const { title, content, tags } = req.body; // Add tags to destructuring
+    const { title, content } = req.body;
+    
+    // Parse tags from the form data
+    let tags = [];
+    if (req.body.tags) {
+      try {
+        tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
+      } catch (e) {
+        console.error('Error parsing tags:', e);
+        tags = [];
+      }
+    }
 
     const post = await Post.findById(postId);
     if (!post) {
@@ -137,16 +155,14 @@ const editPost = async (req, res) => {
       return res.status(403).json({ success: false, message: "You can only edit your own posts" });
     }
 
-    // Update fields
     post.title = title || post.title;
     post.content = content || post.content;
-    post.tags = tags || post.tags; // Update tags
+    post.tags = tags || post.tags; // Update with parsed tags
 
-    // Handle image update
     if (req.file) {
       post.image = req.file.path;
     } else if (req.body.clearImage === 'true') {
-      post.image = undefined; // Remove the image
+      post.image = undefined;
     }
 
     await post.save();
