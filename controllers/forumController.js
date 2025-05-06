@@ -10,7 +10,15 @@ const listPosts = async (req, res) => {
   }
 
   try {
-    const posts = await Post.find()
+    const { tags } = req.query;
+    let query = {};
+    
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : [tags];
+      query = { tags: { $in: tagArray } };
+    }
+
+    const posts = await Post.find(query)
       .sort({ createdAt: -1 })
       .populate('author', 'username type avatar')
       .populate({
@@ -54,8 +62,6 @@ const listPostsN = async (req, res) => {
   }
 }; 
 
-
-
 const createPost = async (req, res) => {
   try {
     const currentUser = res.locals.user;
@@ -67,7 +73,7 @@ const createPost = async (req, res) => {
     console.log('Request body:', req.body);
     console.log('Request file:', req.file);
 
-    const { title, content } = req.body;
+    const { title, content, tags } = req.body; // Add tags to destructuring
     const author = currentUser._id;
 
     // Validate required fields
@@ -81,6 +87,7 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       title,
       content,
+      tags: tags || [], // Add tags with empty array as default
       image: req.file ? req.file.path : null,
       author,
     });
@@ -98,6 +105,55 @@ const createPost = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error creating post', 
+      error: err.message 
+    });
+  }
+};
+
+const editPost = async (req, res) => {
+  const currentUser = res.locals.user;
+  if (!currentUser) {
+    return res.status(401).json({ success: false, message: "Unauthorized: User not authenticated" });
+  }
+
+  try {
+    const { postId } = req.params;
+    const { title, content, tags } = req.body; // Add tags to destructuring
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    if (post.author.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({ success: false, message: "You can only edit your own posts" });
+    }
+
+    // Update fields
+    post.title = title || post.title;
+    post.content = content || post.content;
+    post.tags = tags || post.tags; // Update tags
+    
+    // Handle image update
+    if (req.file) {
+      post.image = req.file.path;
+    } else if (req.body.clearImage === 'true') {
+      post.image = undefined; // Remove the image
+    }
+
+    await post.save();
+    const populatedPost = await Post.findById(post._id)
+      .populate('author', 'username type avatar');
+      
+    res.json({ 
+      success: true, 
+      message: "Post updated successfully", 
+      post: populatedPost 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: "Error updating post", 
       error: err.message 
     });
   }
@@ -200,54 +256,6 @@ const createReply = async (req, res) => {
   } catch (err) {
     console.error('Error creating reply:', err);
     return res.status(500).json({ success: false, message: 'Error creating reply', error: err.message });
-  }
-};
-
-const editPost = async (req, res) => {
-  const currentUser = res.locals.user;
-  if (!currentUser) {
-    return res.status(401).json({ success: false, message: "Unauthorized: User not authenticated" });
-  }
-
-  try {
-    const { postId } = req.params;
-    const { title, content } = req.body;
-
-    const post = await Post.findById(postId);
-    if (!post) {
-      return res.status(404).json({ success: false, message: "Post not found" });
-    }
-
-    if (post.author.toString() !== currentUser._id.toString()) {
-      return res.status(403).json({ success: false, message: "You can only edit your own posts" });
-    }
-
-    // Update fields
-    post.title = title || post.title;
-    post.content = content || post.content;
-    
-    // Handle image update
-    if (req.file) {
-      post.image = req.file.path;
-    } else if (req.body.image === 'null') {
-      post.image = undefined; // Remove the image
-    }
-
-    await post.save();
-    const populatedPost = await Post.findById(post._id)
-      .populate('author', 'username type avatar');
-      
-    res.json({ 
-      success: true, 
-      message: "Post updated successfully", 
-      post: populatedPost 
-    });
-  } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: "Error updating post", 
-      error: err.message 
-    });
   }
 };
 
