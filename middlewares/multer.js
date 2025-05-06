@@ -1,8 +1,8 @@
+require('dotenv').config(); // Ensure AWS credentials are available
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
 const path = require('path');
-require('dotenv').config(); // Ensure AWS credentials are available
 
 // Initialize the S3 client
 const s3 = new S3Client({
@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: multerS3({
     s3: s3,
-    bucket: process.env.AWS_BUCKET_NAME,
+    bucket: process.env.S3_BUCKET_NAME,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     acl: 'public-read', // or 'private' if needed
     key: (req, file, cb) => {
