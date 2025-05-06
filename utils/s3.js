@@ -11,7 +11,7 @@ const s3 = new S3Client({
 
 async function uploadToS3(fileBuffer, fileName, mimeType) {
   const uploadParams = {
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: process.env.AWS_BUCKET_NAME,
     Key: fileName,
     Body: fileBuffer,
     ContentType: mimeType,
@@ -23,7 +23,7 @@ async function uploadToS3(fileBuffer, fileName, mimeType) {
 
 async function getSignedUrlFromS3(fileName) {
   const command = new GetObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: process.env.AWS_BUCKET_NAME,
     Key: fileName,
   });
 

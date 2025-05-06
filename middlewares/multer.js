@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: multerS3({
     s3: s3,
-    bucket: process.env.S3_BUCKET_NAME,
+    bucket: process.env.AWS_BUCKET_NAME,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     acl: 'public-read', // or 'private' if needed
     key: (req, file, cb) => {

@@ -1,7 +1,4 @@
 const receitaMedico = require("../models/receita");
-const fs = require('fs');
-const path = require('path');
-const { uploadToS3 } = require("../utils/s3");
 
 const getReceitas = async (req, res) => {
   try {
