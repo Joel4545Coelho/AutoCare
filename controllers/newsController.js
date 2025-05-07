@@ -30,7 +30,7 @@ const inserir = async (req, res) => {
 
   try {
     const { title, content } = req.body;
-    console.log("file info" + req.file.fileUrl)
+    console.log("file info" + req.file.location)
 
     const noticia = await news.create({
       title,
@@ -81,7 +81,8 @@ const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
-    const image = req.file.location
+
+    const image = req.file?.location || null; // Safe optional chaining
 
     const updates = { title, content };
     if (image) {
@@ -99,6 +100,7 @@ const update = async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar notícia' });
   }
 };
+
 const getById = async (req, res) => {
   try {
     const { id } = req.params;
