@@ -35,7 +35,7 @@ const inserir = async (req, res) => {
     const noticia = await news.create({
       title,
       content,
-      image: req.file.fileUrl,
+      image: req.file.location,
       organization_id: currentUserId,
     });
 
