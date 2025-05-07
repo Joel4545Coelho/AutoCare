@@ -81,7 +81,7 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       title,
       content,
-      image: req.file ? req.file.path : null,
+      image: req.file.location,
       author,
     });
 
@@ -125,7 +125,7 @@ const createComment = async (req, res) => {
 
     let image = null;
     if (req.file) {
-      image = req.file.path;
+      image = req.file.location;
     }
 
     const comment = new Comment({
@@ -179,7 +179,7 @@ const createReply = async (req, res) => {
 
     let image = null;
     if (req.file) {
-      image = req.file.path;
+      image = req.file.location;
     }
 
     const reply = new Comment({
@@ -228,7 +228,7 @@ const editPost = async (req, res) => {
     
     // Handle image update
     if (req.file) {
-      post.image = req.file.path;
+      post.image = req.file.location;
     } else if (req.body.image === 'null') {
       post.image = undefined; // Remove the image
     }
@@ -265,7 +265,7 @@ const editComment = async (req, res) => {
     comment.content = content || comment.content;
 
     if (req.file) {
-      comment.image = req.file.path;
+      comment.image = req.file.location;
     }
     await comment.save();
     const populatedComment = await Comment.findById(comment._id).populate('author', 'username type avatar');
@@ -288,7 +288,7 @@ const editReply = async (req, res) => {
     reply.content = content || reply.content;
 
     if (req.file) {
-      reply.image = req.file.path;
+      reply.image = req.file.location;
     }
     await reply.save();
     const populatedReply = await Comment.findById(reply._id).populate('author', 'username type avatar');
