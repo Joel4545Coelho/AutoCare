@@ -71,32 +71,30 @@ const listPostsN = async (req, res) => {
 
 const createPost = async (req, res) => {
   try {
-    console.log('Raw request body:', req.body); // Debug
-    console.log('Received files:', req.file); // Debug
-
     const currentUser = res.locals.user;
     if (!currentUser) {
       return res.status(401).json({ error: "Unauthorized: User not authenticated" });
     }
 
-    // Handle tags - they can come as array or multiple fields
+    // Debug what's coming in
+    console.log('Raw request body:', req.body);
+    console.log('Raw tags data:', req.body.tags);
+
+    // Handle tags - they might come as array or string
     let tags = [];
     if (req.body.tags) {
-      // If it's already an array (JSON stringified)
       if (Array.isArray(req.body.tags)) {
         tags = req.body.tags;
-      } 
-      // If it's a string (single tag)
-      else if (typeof req.body.tags === 'string') {
-        tags = [req.body.tags];
+      } else if (typeof req.body.tags === 'string') {
+        // Handle case where tags come as comma-separated string
+        tags = req.body.tags.split(',').map(tag => tag.trim());
       }
     }
-    // If tags were sent as multiple form fields
-    else if (Array.isArray(req.body['tags[]'])) {
-      tags = req.body['tags[]'];
-    }
 
-    console.log('Processed tags:', tags); // Debug
+    // Ensure we have proper array
+    tags = Array.isArray(tags) ? tags : [tags].filter(Boolean);
+
+    console.log('Processed tags:', tags);
 
     const { title, content } = req.body;
     const author = currentUser._id;
@@ -108,17 +106,21 @@ const createPost = async (req, res) => {
       });
     }
 
+    // Create new post - explicitly set tags
     const newPost = new Post({
       title,
       content,
-      tags: tags.filter(tag => tag), // Remove empty tags
+      tags: tags, // Explicitly set tags
       image: req.file ? req.file.path : null,
       author,
     });
 
-    const savedPost = await newPost.save();
-    console.log('Saved post:', savedPost); // Debug
+    console.log('Post to be saved:', newPost);
 
+    const savedPost = await newPost.save();
+    console.log('Saved post from DB:', savedPost);
+
+    // Force refresh from database to ensure we get latest
     const populatedPost = await Post.findById(savedPost._id)
       .populate('author', 'username type avatar');
 
@@ -127,7 +129,7 @@ const createPost = async (req, res) => {
       post: populatedPost
     });
   } catch (err) {
-    console.error('Full error in createPost:', err); // Debug
+    console.error('Full error in createPost:', err);
     res.status(500).json({
       success: false,
       message: 'Error creating post',
@@ -137,38 +139,34 @@ const createPost = async (req, res) => {
 };
 
 const editPost = async (req, res) => {
-  const currentUser = res.locals.user;
-  if (!currentUser) {
-    return res.status(401).json({ success: false, message: "Unauthorized: User not authenticated" });
-  }
-
   try {
     const { postId } = req.params;
-    const { title, content } = req.body;
+    const currentUser = res.locals.user;
     
-    // Parse tags from the form data
+    // Handle tags the same way as createPost
     let tags = [];
     if (req.body.tags) {
-      try {
-        tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
-      } catch (e) {
-        console.error('Error parsing tags:', e);
-        tags = [];
+      if (Array.isArray(req.body.tags)) {
+        tags = req.body.tags;
+      } else if (typeof req.body.tags === 'string') {
+        tags = req.body.tags.split(',').map(tag => tag.trim());
       }
     }
+    tags = Array.isArray(tags) ? tags : [tags].filter(Boolean);
 
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(404).json({ success: false, message: "Post not found" });
+      return res.status(404).json({ message: 'Post not found' });
     }
 
     if (post.author.toString() !== currentUser._id.toString()) {
       return res.status(403).json({ success: false, message: "You can only edit your own posts" });
     }
 
-    post.title = title || post.title;
-    post.content = content || post.content;
-    post.tags = tags || post.tags; // Update with parsed tags
+    // Update tags explicitly
+    post.tags = tags;
+    post.title = req.body.title || post.title;
+    post.content = req.body.content || post.content;s
 
     if (req.file) {
       post.image = req.file.path;
