@@ -81,7 +81,7 @@ const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
-    const image = req.file.fileUrl
+    const image = req.file.location
 
     const updates = { title, content };
     if (image) {
