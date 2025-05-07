@@ -71,22 +71,32 @@ const listPostsN = async (req, res) => {
 
 const createPost = async (req, res) => {
   try {
+    console.log('Raw request body:', req.body); // Debug
+    console.log('Received files:', req.file); // Debug
+
     const currentUser = res.locals.user;
     if (!currentUser) {
       return res.status(401).json({ error: "Unauthorized: User not authenticated" });
     }
 
-    // Parse tags from the form data
+    // Handle tags - they can come as array or multiple fields
     let tags = [];
     if (req.body.tags) {
-      try {
-        // If tags were sent as a JSON string, parse it
-        tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
-      } catch (e) {
-        console.error('Error parsing tags:', e);
-        tags = [];
+      // If it's already an array (JSON stringified)
+      if (Array.isArray(req.body.tags)) {
+        tags = req.body.tags;
+      } 
+      // If it's a string (single tag)
+      else if (typeof req.body.tags === 'string') {
+        tags = [req.body.tags];
       }
     }
+    // If tags were sent as multiple form fields
+    else if (Array.isArray(req.body['tags[]'])) {
+      tags = req.body['tags[]'];
+    }
+
+    console.log('Processed tags:', tags); // Debug
 
     const { title, content } = req.body;
     const author = currentUser._id;
@@ -101,12 +111,14 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       title,
       content,
-      tags, // Use the parsed tags
+      tags: tags.filter(tag => tag), // Remove empty tags
       image: req.file ? req.file.path : null,
       author,
     });
 
     const savedPost = await newPost.save();
+    console.log('Saved post:', savedPost); // Debug
+
     const populatedPost = await Post.findById(savedPost._id)
       .populate('author', 'username type avatar');
 
@@ -115,7 +127,7 @@ const createPost = async (req, res) => {
       post: populatedPost
     });
   } catch (err) {
-    console.error('Error creating post:', err);
+    console.error('Full error in createPost:', err); // Debug
     res.status(500).json({
       success: false,
       message: 'Error creating post',
