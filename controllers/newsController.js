@@ -30,12 +30,12 @@ const inserir = async (req, res) => {
 
   try {
     const { title, content } = req.body;
-    const image = req.file.fileUrl
+    console.log("file info" + req.file.fileUrl)
 
     const noticia = await news.create({
       title,
       content,
-      image,
+      image: req.file.fileUrl,
       organization_id: currentUserId,
     });
 
@@ -116,4 +116,4 @@ const getById = async (req, res) => {
 };
 
 
-module.exports = { index, inserir, deletee, update, indexN, getById  };
+module.exports = { index, inserir, deletee, update, indexN, getById };
