@@ -15,6 +15,10 @@ const ReceitaSchema = new mongoose.Schema({
     ref: 'user', 
     required: true
   },
+  fileUrl:{
+    type: String,
+    required: false 
+  },
   file: {
     type: String, // Armazenaremos o caminho do arquivo
     required: false // Tornamos opcional para flexibilidade
