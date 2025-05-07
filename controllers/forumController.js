@@ -76,23 +76,21 @@ const createPost = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized: User not authenticated" });
     }
 
-    // Debug what's coming in
     console.log('Raw request body:', req.body);
     console.log('Raw tags data:', req.body.tags);
 
-    // Handle tags - they might come as array or string
+    // Handle tags - they come as array when using tags[] format
     let tags = [];
     if (req.body.tags) {
       if (Array.isArray(req.body.tags)) {
         tags = req.body.tags;
       } else if (typeof req.body.tags === 'string') {
-        // Handle case where tags come as comma-separated string
-        tags = req.body.tags.split(',').map(tag => tag.trim());
+        tags = [req.body.tags];
       }
     }
 
-    // Ensure we have proper array
-    tags = Array.isArray(tags) ? tags : [tags].filter(Boolean);
+    // For the tags[] format, body-parser converts it to an array automatically
+    tags = tags.filter(tag => tag && typeof tag === 'string');
 
     console.log('Processed tags:', tags);
 
@@ -106,11 +104,10 @@ const createPost = async (req, res) => {
       });
     }
 
-    // Create new post - explicitly set tags
     const newPost = new Post({
       title,
       content,
-      tags: tags, // Explicitly set tags
+      tags,
       image: req.file ? req.file.path : null,
       author,
     });
@@ -120,7 +117,6 @@ const createPost = async (req, res) => {
     const savedPost = await newPost.save();
     console.log('Saved post from DB:', savedPost);
 
-    // Force refresh from database to ensure we get latest
     const populatedPost = await Post.findById(savedPost._id)
       .populate('author', 'username type avatar');
 
