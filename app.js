@@ -19,6 +19,7 @@ const forumRoutes = require("./routes/forumRoutes");
 const homeRoutes = require("./routes/homeRoutes");
 const profileroutes = require('./routes/profileroutes');
 const subroutes = require('./routes/subscriptionRoutes');
+const doctorRatings = require('./routes/doctorRatings');
 
 const app = express();
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
@@ -74,6 +75,7 @@ app.use('/assinaturas', subroutes);
 app.get("/pacientes", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+app.use('/api/v1/doctors', doctorRatings);
 
 // WebSocket com Socket.io
 io.on("connection", (socket) => {
