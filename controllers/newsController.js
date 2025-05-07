@@ -30,7 +30,7 @@ const inserir = async (req, res) => {
 
   try {
     const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const image = req.file.fileUrl
 
     const noticia = await news.create({
       title,
@@ -81,7 +81,7 @@ const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const image = req.file.fileUrl
 
     const updates = { title, content };
     if (image) {
