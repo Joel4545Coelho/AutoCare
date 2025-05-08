@@ -81,46 +81,11 @@ exports.createEasyPaySubscription = async (req, res) => {
             method: "cc"
         };
 
-        const checkoutPayload = {
-            type: ["subscription"],
-            payment: {
-                methods: ["cc", "mbw"], // Credit Card and MB Way
-                type: "sale",
-                capture: {
-                    descriptive: `Subscrição: ${plano.nome}`
-                },
-                start_time: formatDateTime(startTime),
-                frequency: frequencyMap[plano.duracao] || '1M',
-                expiration_time: formatDateTime(expirationTime),
-                currency: "EUR",
-                value: plano.preco
-            },
-            order: {
-                items: [{
-                    description: plano.nome,
-                    quantity: 1,
-                    key: plano._id.toString(),
-                    value: plano.preco
-                }],
-                key: `sub-${currentUser._id}-${Date.now()}`,
-                value: plano.preco
-            },
-            customer: {
-                name: currentUser.name,
-                email: currentUser.email,
-                phone: currentUser.phone || '911234567',
-                phone_indicative: "+351",
-                fiscal_number: currentUser.fiscalNumber || "PT123456789",
-                key: currentUser._id.toString(),
-                language: "PT"
-            }
-        };
-
-        // Create Checkout session
-        const response = await axios.post(`${EASYPAY_API_URL}/checkout`, checkoutPayload, {
+        // Make API request to EasyPay
+        const response = await axios.post(`${EASYPAY_API_URL}/subscription`, payload, {
             headers: {
-                'AccountId': ACCOUNT_ID,
-                'ApiKey': API_KEY,
+                'AccountId': process.env.EASYPAY_ACCOUNT_ID,
+                'ApiKey': process.env.EASYPAY_API_KEY,
                 'Content-Type': 'application/json'
             }
         });
@@ -134,22 +99,26 @@ exports.createEasyPaySubscription = async (req, res) => {
             status: 'pending',
             paymentStatus: 'pending',
             level: plano.level,
-            easypayCheckoutId: response.data.id, // Store checkout ID
-            easypayId: response.data.id // Also store as easypayId for backward compatibility
+            easypayId: response.data.id
         });
 
         await novaAssinatura.save();
 
         res.json({
             success: true,
-            checkoutId: response.data.id,
-            session: response.data.session,
+            url: response.data.method?.url, // Payment URL for CC
             subscriptionId: novaAssinatura._id,
-            url: response.data.url // For credit card redirects
+            checkoutId: response.data.id,
+            session: response.data.session
         });
 
     } catch (error) {
-        console.error('EasyPay API Error:', error.response?.data || error.message);
+        console.error('EasyPay API Error:', {
+            message: error.message,
+            response: error.response?.data,
+            config: error.config,
+            stack: error.stack
+        });
         res.status(500).json({ 
             success: false, 
             message: 'Error creating subscription',
@@ -178,10 +147,10 @@ exports.checkSubscriptionStatus = async (req, res) => {
             });
         }
 
-        // Check with EasyPay API using the subscription endpoint
-        if (subscription.easypayId) {
+        // Check with EasyPay API
+        if (subscription.easypayCheckoutId) {
             const response = await axios.get(
-                `${EASYPAY_API_URL}/subscription/${subscription.easypayId}`,
+                `${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`,
                 {
                     headers: {
                         'AccountId': ACCOUNT_ID,
@@ -190,24 +159,13 @@ exports.checkSubscriptionStatus = async (req, res) => {
                 }
             );
 
-            const subscriptionData = response.data;
+            const checkoutData = response.data;
 
-            // Check payment method status
-            if (subscriptionData.method?.status === 'active') {
+            // If payment was successful
+            if (checkoutData.payment?.status === 'success') {
                 // Update subscription to active
                 subscription.status = 'active';
                 subscription.paymentStatus = 'completed';
-                subscription.dataInicio = new Date(subscriptionData.start_time);
-                
-                // Calculate end date based on frequency
-                const frequency = subscriptionData.frequency;
-                const endDate = new Date(subscription.dataInicio);
-                
-                if (frequency === '1M') endDate.setMonth(endDate.getMonth() + 1);
-                else if (frequency === '3M') endDate.setMonth(endDate.getMonth() + 3);
-                else if (frequency === '1Y') endDate.setFullYear(endDate.getFullYear() + 1);
-                
-                subscription.dataFim = endDate;
                 await subscription.save();
 
                 // Update user
@@ -224,7 +182,7 @@ exports.checkSubscriptionStatus = async (req, res) => {
             }
         }
 
-        // If we got here, payment is still pending
+        // Default return if still pending
         res.json({
             success: true,
             status: subscription.status || 'pending',
@@ -235,8 +193,17 @@ exports.checkSubscriptionStatus = async (req, res) => {
         console.error('Error checking subscription:', error);
         res.status(500).json({
             success: false,
-            message: 'Error checking subscription status',
-            error: error.response?.data || error.message
+            message: 'Error checking subscription status'
         });
     }
 };
+
+// Helper function to map our duration to EasyPay frequency
+function getFrequency(duracao) {
+    const map = {
+        'mensal': '1M',
+        'trimestral': '3M',
+        'anual': '1Y'
+    };
+    return map[duracao] || '1M';
+}
