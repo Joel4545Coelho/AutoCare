@@ -4,19 +4,16 @@ const Subscription = require('../models/subscriptionModel');
 
 exports.getPlanos = async (req, res) => {
   try {
-    const planos = await Plano.aggregate([
-        { $match: { ativo: true } },
-        { $project: {
-            nome: '$nome',
-            descricao: '$descricao',
-            preco: 1,
-            duracao: '$duracao',
-            beneficios: 1,
-            ativo: 1,
-            level:'level'
-          }
-        }
-      ]);
+    const currentUser = res.locals.user;
+    
+    // Simplified filter logic
+    const filter = { ativo: true };
+    if (currentUser.type !== 'medico') {
+      filter.level = { $ne: 'medico' }; // Non-medicos only see non-medico plans
+    }
+
+    const planos = await Plano.find(filter).select('nome descricao preco duracao beneficios ativo level');
+    
     res.json(planos);
   } catch (error) {
     console.error('Erro ao buscar planos:', error);
