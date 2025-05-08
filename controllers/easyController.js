@@ -39,14 +39,11 @@ exports.createEasyPaySubscription = async (req, res) => {
 
         // Calculate dates
         const startTime = new Date();
-        startTime.setMinutes(startTime.getMinutes() + 5);
-
+        const expirationTime = new Date();
+        
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
         else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
         else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
-
-        const expirationTime = new Date();
-        expirationTime.setMinutes(expirationTime.getMinutes() + 15);
 
         // Create Checkout session for subscription
         const checkoutPayload = {
@@ -59,7 +56,7 @@ exports.createEasyPaySubscription = async (req, res) => {
                 },
                 start_time: formatDateTime(startTime),
                 frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(expirationTime),
+                expiration_time: formatDateTime(new Date(expirationTime.getTime() + 15 * 60000)), // 15 minutes from now
                 currency: "EUR",
                 value: plano.preco
             },
@@ -89,10 +86,7 @@ exports.createEasyPaySubscription = async (req, res) => {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+                'Content-Type': 'application/json'
             }
         });
 
@@ -114,7 +108,8 @@ exports.createEasyPaySubscription = async (req, res) => {
             success: true,
             checkoutId: checkoutResponse.data.id,
             session: checkoutResponse.data.session,
-            subscriptionId: novaAssinatura._id
+            subscriptionId: novaAssinatura._id,
+            url: checkoutResponse.data.method?.url // Include the redirect URL if available
         });
 
     } catch (error) {
@@ -133,7 +128,10 @@ exports.checkSubscriptionStatus = async (req, res) => {
 
     try {
         // First check our database
-        const subscription = await Subscription.findById(subscriptionId);
+        const subscription = await Subscription.findById(subscriptionId)
+            .populate('planoId')
+            .populate('userId');
+
         if (!subscription) {
             return res.status(404).json({ success: false, message: 'Subscription not found' });
         }
@@ -147,7 +145,7 @@ exports.checkSubscriptionStatus = async (req, res) => {
             });
         }
 
-        // Check with EasyPay API
+        // Check with EasyPay API if we have a checkout ID
         if (subscription.easypayCheckoutId) {
             const response = await axios.get(
                 `${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`,
@@ -197,13 +195,3 @@ exports.checkSubscriptionStatus = async (req, res) => {
         });
     }
 };
-
-// Helper function to map our duration to EasyPay frequency
-function getFrequency(duracao) {
-    const map = {
-        'mensal': '1M',
-        'trimestral': '3M',
-        'anual': '1Y'
-    };
-    return map[duracao] || '1M';
-}
