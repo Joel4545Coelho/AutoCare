@@ -3,7 +3,7 @@ const Subscription = require('../models/subscriptionModel');
 const Plano = require('../models/planModel');
 const User = require('../models/user');
 
-const EASYPAY_API_URL = 'https://api.test.easypay.pt/';
+const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
 const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID;
 const API_KEY = process.env.EASYPAY_API_KEY;
 
