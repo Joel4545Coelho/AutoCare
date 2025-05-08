@@ -112,11 +112,11 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error:', error.response?.data || error.message);
-        res.status(500).json({
-            success: false,
+        console.error('EasyPay API Error:', error.response?.data || error.message);
+        res.status(500).json({ 
+            success: false, 
             message: 'Error creating subscription',
-            error: error.response?.data || error.message
+            error: error.response?.data?.message || error.message
         });
     }
 };
