@@ -18,7 +18,7 @@ exports.createEasyPaySubscription = async (req, res) => {
     const currentUser = res.locals.user;
 
     try {
-        // Check existing subscription
+        // Check if user already has an active subscription
         const existingSubscription = await Subscription.findOne({
             userId: currentUser._id,
             status: 'active'
@@ -37,42 +37,33 @@ exports.createEasyPaySubscription = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
 
-        // Calculate dates
+        // Calculate dates - FIXED: Initialize startTime first
         const startTime = new Date();
-        startTime.setMinutes(startTime.getMinutes() + 5);
+        startTime.setMinutes(startTime.getMinutes() + 5); // Start 5 minutes from now
 
-        if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
-        else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
-        else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
+        // FIXED: Initialize expirationTime after startTime is defined
+        let expirationTime = new Date(startTime);
+        if (plano.duracao === 'mensal') {
+            expirationTime.setMonth(expirationTime.getMonth() + 1);
+        } else if (plano.duracao === 'trimestral') {
+            expirationTime.setMonth(expirationTime.getMonth() + 3);
+        } else if (plano.duracao === 'anual') {
+            expirationTime.setFullYear(expirationTime.getFullYear() + 1);
+        }
 
-        const expirationTime = new Date();
-        expirationTime.setMinutes(expirationTime.getMinutes() + 15);
+        // Map duration to frequency
+        const frequencyMap = {
+            'mensal': '1M',
+            'trimestral': '3M',
+            'anual': '1Y'
+        };
 
-        // Create Checkout session for subscription
-        const checkoutPayload = {
-            type: ["subscription"],
-            payment: {
-                methods: ["cc", "mbw"], // Credit Card and MB Way
-                type: "sale",
-                capture: {
-                    descriptive: `Subscription: ${plano.nome}`
-                },
-                start_time: formatDateTime(startTime),
-                frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(expirationTime),
-                currency: "EUR",
-                value: plano.preco
+        const payload = {
+            capture: {
+                descriptive: `Subscription: ${plano.nome}`
             },
-            order: {
-                items: [{
-                    description: plano.nome,
-                    quantity: 1,
-                    key: plano._id.toString(),
-                    value: plano.preco
-                }],
-                key: `sub-${currentUser._id}-${Date.now()}`,
-                value: plano.preco
-            },
+            expiration_time: formatDateTime(expirationTime),
+            currency: "EUR",
             customer: {
                 name: currentUser.name,
                 email: currentUser.email,
@@ -81,22 +72,25 @@ exports.createEasyPaySubscription = async (req, res) => {
                 fiscal_number: currentUser.fiscalNumber || "PT123456789",
                 key: currentUser._id.toString(),
                 language: "PT"
-            }
+            },
+            value: plano.preco,
+            frequency: frequencyMap[plano.duracao] || '1M',
+            start_time: formatDateTime(startTime),
+            failover: true,
+            retries: 2,
+            method: "cc"
         };
 
-        // Create Checkout session
-        const checkoutResponse = await axios.post(`${EASYPAY_API_URL}/checkout`, checkoutPayload, {
+        // Make API request to EasyPay
+        const response = await axios.post(`${EASYPAY_API_URL}/subscription`, payload, {
             headers: {
-                'AccountId': ACCOUNT_ID,
-                'ApiKey': API_KEY,
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+                'AccountId': process.env.EASYPAY_ACCOUNT_ID,
+                'ApiKey': process.env.EASYPAY_API_KEY,
+                'Content-Type': 'application/json'
             }
         });
 
-        // Create pending subscription record
+        // Create subscription record
         const novaAssinatura = new Subscription({
             userId: currentUser._id,
             planoId: plano._id,
@@ -105,24 +99,30 @@ exports.createEasyPaySubscription = async (req, res) => {
             status: 'pending',
             paymentStatus: 'pending',
             level: plano.level,
-            easypayCheckoutId: checkoutResponse.data.id
+            easypayId: response.data.id
         });
 
         await novaAssinatura.save();
 
         res.json({
             success: true,
-            checkoutId: checkoutResponse.data.id,
-            session: checkoutResponse.data.session,
-            subscriptionId: novaAssinatura._id
+            url: response.data.method?.url, // Payment URL for CC
+            subscriptionId: novaAssinatura._id,
+            checkoutId: response.data.id,
+            session: response.data.session
         });
 
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({
-            success: false,
+        console.error('EasyPay API Error:', {
+            message: error.message,
+            response: error.response?.data,
+            config: error.config,
+            stack: error.stack
+        });
+        res.status(500).json({ 
+            success: false, 
             message: 'Error creating subscription',
-            error: error.response?.data || error.message
+            error: error.response?.data?.message || error.message
         });
     }
 };
