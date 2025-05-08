@@ -176,3 +176,43 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
+exports.checkStatus = async (req, res) => {
+  try {
+      const subscription = await Subscription.findById(req.params.id)
+          .populate('planoId')
+          .populate('userId');
+          
+      if (!subscription) {
+          return res.status(404).json({ success: false });
+      }
+      
+      if (subscription.status === 'active') {
+          return res.json({ 
+              success: true,
+              status: 'active',
+              subscription
+          });
+      }
+      
+      if (subscription.status === 'pending' && new Date() > subscription.dataFim) {
+          subscription.status = 'expired';
+          await subscription.save();
+          return res.json({
+              success: true,
+              status: 'expired',
+              subscription
+          });
+      }
+      
+      res.json({
+          success: true,
+          status: subscription.status,
+          subscription
+      });
+      
+  } catch (error) {
+      console.error('Status check error:', error);
+      res.status(500).json({ success: false });
+  }
+};
