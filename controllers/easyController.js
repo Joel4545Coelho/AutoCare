@@ -31,15 +31,14 @@ exports.createEasyPaySubscription = async (req, res) => {
             });
         }
 
-        // Get the plan
         const plano = await Plano.findById(planoId);
         if (!plano) {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
 
-        // Calculate dates
+        // Calculate dates - IMPORTANT: Fix the date calculation
         const startTime = new Date();
-        const expirationTime = new Date();
+        const expirationTime = new Date(startTime); // Clone startTime
         
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
         else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
@@ -49,16 +48,25 @@ exports.createEasyPaySubscription = async (req, res) => {
         const checkoutPayload = {
             type: ["subscription"],
             payment: {
-                methods: ["cc", "mbw"], // Credit Card and MB Way
+                methods: ["cc", "mbw"], 
                 type: "sale",
                 capture: {
-                    descriptive: `Subscription: ${plano.nome}`
+                    descriptive: `Subscription: ${plano.nome}`,
+                    transaction_key: `sub-${currentUser._id}-${Date.now()}`
                 },
                 start_time: formatDateTime(startTime),
                 frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(new Date(expirationTime.getTime() + 15 * 60000)), // 15 minutes from now
+                expiration_time: formatDateTime(new Date(startTime.getTime() + 15 * 60000)), // 15 minutes from now
                 currency: "EUR",
-                value: plano.preco
+                value: plano.preco,
+                customer: {  // Move customer inside payment
+                    email: currentUser.email,
+                    name: currentUser.name,
+                    phone: currentUser.phone || '911234567',
+                    phone_indicative: "+351",
+                    fiscal_number: currentUser.fiscalNumber || "PT123456789",
+                    key: currentUser._id.toString()
+                }
             },
             order: {
                 items: [{
@@ -69,15 +77,6 @@ exports.createEasyPaySubscription = async (req, res) => {
                 }],
                 key: `sub-${currentUser._id}-${Date.now()}`,
                 value: plano.preco
-            },
-            customer: {
-                name: currentUser.name,
-                email: currentUser.email,
-                phone: currentUser.phone || '911234567',
-                phone_indicative: "+351",
-                fiscal_number: currentUser.fiscalNumber || "PT123456789",
-                key: currentUser._id.toString(),
-                language: "PT"
             }
         };
 
@@ -113,7 +112,7 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error:', error.response?.data || error.message);
         res.status(500).json({
             success: false,
             message: 'Error creating subscription',
