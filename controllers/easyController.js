@@ -58,14 +58,36 @@ exports.createEasyPaySubscription = async (req, res) => {
             'anual': '1Y'
         };
 
+        const payload = {
+            capture: {
+                descriptive: `Subscription: ${plano.nome}`
+            },
+            expiration_time: formatDateTime(expirationTime),
+            currency: "EUR",
+            customer: {
+                name: currentUser.name,
+                email: currentUser.email,
+                phone: currentUser.phone || '911234567',
+                phone_indicative: "+351",
+                fiscal_number: currentUser.fiscalNumber || "PT123456789",
+                key: currentUser._id.toString(),
+                language: "PT"
+            },
+            value: plano.preco,
+            frequency: frequencyMap[plano.duracao] || '1M',
+            start_time: formatDateTime(startTime),
+            failover: true,
+            retries: 2,
+            method: "cc"
+        };
+
         const checkoutPayload = {
             type: ["subscription"],
             payment: {
-                methods: ["cc", "mbw"],
+                methods: ["cc", "mbw"], // Credit Card and MB Way
                 type: "sale",
                 capture: {
-                    descriptive: `Subscrição: ${plano.nome}`,
-                    transaction_key: `sub_${currentUser._id}_${Date.now()}` // Add transaction key
+                    descriptive: `Subscrição: ${plano.nome}`
                 },
                 start_time: formatDateTime(startTime),
                 frequency: frequencyMap[plano.duracao] || '1M',
@@ -109,24 +131,25 @@ exports.createEasyPaySubscription = async (req, res) => {
             planoId: plano._id,
             dataInicio: startTime,
             dataFim: expirationTime,
-            status: 'pending_payment',
-            paymentStatus: 'initiated',
+            status: 'pending',
+            paymentStatus: 'pending',
             level: plano.level,
-            easypayId: response.data.id,
-            transactionKey: checkoutPayload.payment.capture.transaction_key,
-            lastChecked: new Date()
+            easypayCheckoutId: response.data.id, // Store checkout ID
+            easypayId: response.data.id // Also store as easypayId for backward compatibility
         });
 
         await novaAssinatura.save();
 
         res.json({
             success: true,
-            url: response.data.url, // This will trigger the redirect
-            subscriptionId: novaAssinatura._id
+            checkoutId: response.data.id,
+            session: response.data.session,
+            subscriptionId: novaAssinatura._id,
+            url: response.data.url // For credit card redirects
         });
 
     } catch (error) {
-        console.error('EasyPay API Error:', error);
+        console.error('EasyPay API Error:', error.response?.data || error.message);
         res.status(500).json({ 
             success: false, 
             message: 'Error creating subscription',
@@ -140,16 +163,13 @@ exports.checkSubscriptionStatus = async (req, res) => {
     const { subscriptionId } = req.params;
 
     try {
+        // First check our database
         const subscription = await Subscription.findById(subscriptionId);
         if (!subscription) {
             return res.status(404).json({ success: false, message: 'Subscription not found' });
         }
 
-        // Update last checked time
-        subscription.lastChecked = new Date();
-        await subscription.save();
-
-        // First check our database status
+        // If already active in our system, return early
         if (subscription.status === 'active') {
             return res.json({
                 success: true,
@@ -158,7 +178,7 @@ exports.checkSubscriptionStatus = async (req, res) => {
             });
         }
 
-        // Then check with EasyPay API
+        // Check with EasyPay API using the subscription endpoint
         if (subscription.easypayId) {
             const response = await axios.get(
                 `${EASYPAY_API_URL}/subscription/${subscription.easypayId}`,
@@ -204,7 +224,7 @@ exports.checkSubscriptionStatus = async (req, res) => {
             }
         }
 
-        // If still pending, return current status
+        // If we got here, payment is still pending
         res.json({
             success: true,
             status: subscription.status || 'pending',
