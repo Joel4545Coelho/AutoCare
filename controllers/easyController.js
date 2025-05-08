@@ -3,8 +3,9 @@ const Subscription = require('../models/subscriptionModel');
 const Plano = require('../models/planModel');
 const User = require('../models/user');
 
-const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0/checkout';
-const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID;
+const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
+const CHECKOUT_URL = `${EASYPAY_API_URL}/checkout`;
+const SUBSCRIPTION_URL = `${EASYPAY_API_URL}/subscription`;
 const API_KEY = process.env.EASYPAY_API_KEY;
 
 function formatDateTime(date) {
@@ -81,7 +82,7 @@ exports.createEasyPaySubscription = async (req, res) => {
         };
 
         // Create Checkout session
-        const checkoutResponse = await axios.post(`${EASYPAY_API_URL}/checkout`, checkoutPayload, {
+        const checkoutResponse = await axios.post(CHECKOUT_URL, checkoutPayload, {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
