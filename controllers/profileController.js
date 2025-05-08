@@ -20,7 +20,7 @@ exports.updateAvatar = async (req, res) => {
     }
 
     // A URL do avatar que será salva no banco de dados
-    const photoUrl = file.location;
+    const photoUrl = req.file.location;
 
     // Atualize o campo avatar do usuário com a URL da imagem
     user.avatar = photoUrl;
