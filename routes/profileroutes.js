@@ -4,8 +4,7 @@ const profileController = require('../controllers/profileController');
 const multer = require('multer');
 const path = require('path');
 const authenticate = require('../middlewares/IsAuth'); // Middleware de autenticação
-
-const upload = multer({ storage });
+const upload = require('../middlewares/multer');
 
 // Rota para atualizar o avatar
 router.post('/update-avatar', authenticate, upload.single('file'), profileController.updateAvatar);
