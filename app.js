@@ -98,7 +98,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ senderId, receiverId, message }) => {
+  socket.on("sendMessage", async ({ senderId, receiverId, message,type}) => {
     const roomId = [senderId, receiverId].sort().join("_");
 
     const newMessage = new Message({
@@ -106,6 +106,7 @@ io.on("connection", (socket) => {
       senderId,
       receiverId,
       content: message,
+      type:type,
       seen: false,
     });
 
@@ -117,6 +118,7 @@ io.on("connection", (socket) => {
       receiverId,
       content: message,
       createdAt: newMessage.createdAt,
+      type:type,
       room:roomId
     });
   });
