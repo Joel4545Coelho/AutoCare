@@ -222,20 +222,30 @@ const editPost = async (req, res) => {
       return res.status(403).json({ success: false, message: "You can only edit your own posts" });
     }
 
-    // Update fields
     post.title = title || post.title;
     post.content = content || post.content;
     
-    // Handle image update
     if (req.file) {
       post.image = req.file.location;
     } else if (req.body.image === 'null') {
-      post.image = undefined; // Remove the image
+      post.image = undefined;
     }
 
     await post.save();
+    
+    // Fully populate the post with all nested data
     const populatedPost = await Post.findById(post._id)
-      .populate('author', 'username type avatar');
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'comments',
+        populate: [
+          { path: 'author', select: 'username type avatar' },
+          { 
+            path: 'replies',
+            populate: { path: 'author', select: 'username type avatar' }
+          }
+        ]
+      });
       
     res.json({ 
       success: true, 
@@ -268,7 +278,17 @@ const editComment = async (req, res) => {
       comment.image = req.file.location;
     }
     await comment.save();
-    const populatedComment = await Comment.findById(comment._id).populate('author', 'username type avatar');
+    
+    const populatedComment = await Comment.findById(comment._id)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'replies',
+        populate: {
+          path: 'author',
+          select: 'username type avatar'
+        }
+      });
+      
     res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating comment", error: err.message });
@@ -285,13 +305,17 @@ const editReply = async (req, res) => {
     if (!reply || reply.author.toString() !== currentUser._id.toString()) {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
+    
     reply.content = content || reply.content;
 
     if (req.file) {
       reply.image = req.file.location;
     }
     await reply.save();
-    const populatedReply = await Comment.findById(reply._id).populate('author', 'username type avatar');
+    
+    const populatedReply = await Comment.findById(reply._id)
+      .populate('author', 'username type avatar');
+      
     res.json({ success: true, reply: populatedReply });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating reply", error: err.message });
