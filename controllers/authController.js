@@ -69,7 +69,8 @@ const login = async (req, res) => {
                 email: user.email,
                 type: user.type,
                 doenca: user.doenca || [],
-                token: token
+                token: token,
+                avatar:avatar
             });
         } else {
             return res.status(400).send({ message: "Usuário ou senha inválidos" });
