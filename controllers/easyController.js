@@ -15,14 +15,20 @@ function formatDateTime(date) {
 
 // Create EasyPay subscription
 exports.createEasyPaySubscription = async (req, res) => {
-    const { planoId } = req.body;
+    const { planoId, refresh } = req.body;
     const currentUser = res.locals.user;
 
-    if (!ACCOUNT_ID || !API_KEY) {
-        throw new Error('EasyPay credentials not configured');
-    }
-
     try {
+        // If refreshing, cancel the old checkout first
+        if (refresh && req.body.oldCheckoutId) {
+            await axios.delete(`${CHECKOUT_URL}/${req.body.oldCheckoutId}`, {
+                headers: {
+                    'AccountId': ACCOUNT_ID,
+                    'ApiKey': API_KEY
+                }
+            }).catch(err => console.log('Error cancelling old checkout:', err.message));
+        }
+
         // Check existing subscription
         const existingSubscription = await Subscription.findOne({
             userId: currentUser._id,
@@ -94,7 +100,10 @@ exports.createEasyPaySubscription = async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            timeout: 10000 // Add timeout
+            timeout: 10000
+        }).catch(error => {
+            console.error('EasyPay API Error:', error.response?.data || error.message);
+            throw new Error('Failed to create EasyPay checkout session');
         });
 
         // Create pending subscription record
@@ -116,7 +125,9 @@ exports.createEasyPaySubscription = async (req, res) => {
             checkoutId: checkoutResponse.data.id,
             session: checkoutResponse.data.session,
             subscriptionId: novaAssinatura._id,
-            url: checkoutResponse.data.method?.url // Include the redirect URL if available
+            url: checkoutResponse.data.method?.url,
+            createdAt: Date.now(),
+            planoId: plano._id
         });
 
     } catch (error) {
