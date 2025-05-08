@@ -187,22 +187,14 @@ exports.checkStatus = async (req, res) => {
           return res.status(404).json({ success: false });
       }
       
-      if (subscription.status === 'active') {
-          return res.json({ 
-              success: true,
-              status: 'active',
-              subscription
-          });
-      }
-      
-      if (subscription.status === 'pending' && new Date() > subscription.dataFim) {
+      // Update last checked time
+      subscription.lastChecked = new Date();
+      await subscription.save();
+
+      // Check for expiration
+      if (subscription.status === 'pending_payment' && new Date() > subscription.dataFim) {
           subscription.status = 'expired';
           await subscription.save();
-          return res.json({
-              success: true,
-              status: 'expired',
-              subscription
-          });
       }
       
       res.json({
