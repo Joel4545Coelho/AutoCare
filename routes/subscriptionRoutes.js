@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const subscriptionController = require('../controllers/subscriptionController');
 const easyController = require('../controllers/easyController');
-const { auth } = require('../middleware/authMiddleware');
+const { auth } = require('../middleware/IsAuth');
 
 router.get('/planos', auth, subscriptionController.getPlanos);
 router.get('/meu-plano', auth, subscriptionController.getPlanoAtual);
