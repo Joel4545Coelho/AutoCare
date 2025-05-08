@@ -40,11 +40,13 @@ exports.createEasyPaySubscription = async (req, res) => {
         // Calculate dates
         const startTime = new Date();
         startTime.setMinutes(startTime.getMinutes() + 5);
-        
-        let expirationTime = new Date(startTime);
+
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
         else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
         else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
+
+        const expirationTime = new Date();
+        expirationTime.setMinutes(expirationTime.getMinutes() + 15);
 
         // Create Checkout session for subscription
         const checkoutPayload = {
@@ -87,7 +89,10 @@ exports.createEasyPaySubscription = async (req, res) => {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
             }
         });
 
@@ -113,11 +118,11 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('EasyPay API Error:', error.response?.data || error.message);
-        res.status(500).json({ 
-            success: false, 
+        console.error('Error:', error);
+        res.status(500).json({
+            success: false,
             message: 'Error creating subscription',
-            error: error.response?.data?.message || error.message
+            error: error.response?.data || error.message
         });
     }
 };
