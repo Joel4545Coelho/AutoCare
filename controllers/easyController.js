@@ -36,8 +36,8 @@ exports.createEasyPaySubscription = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
 
-        // Calculate dates - IMPORTANT: Fix the date calculation
-        const startTime = new Date();
+        const now = new Date();
+        const startTime = new Date(now.getTime() + 5 * 60000); // 5 minutes from now
         const expirationTime = new Date(startTime); // Clone startTime
         
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
@@ -54,12 +54,12 @@ exports.createEasyPaySubscription = async (req, res) => {
                     descriptive: `Subscription: ${plano.nome}`,
                     transaction_key: `sub-${currentUser._id}-${Date.now()}`
                 },
-                start_time: formatDateTime(startTime),
+                start_time: formatDateTime(startTime), // This must be in the future
                 frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(new Date(startTime.getTime() + 15 * 60000)), // 15 minutes from now
+                expiration_time: formatDateTime(new Date(startTime.getTime() + 15 * 60000)), // 15 minutes from start
                 currency: "EUR",
                 value: plano.preco,
-                customer: {  // Move customer inside payment
+                customer: {
                     email: currentUser.email,
                     name: currentUser.name,
                     phone: currentUser.phone || '911234567',
