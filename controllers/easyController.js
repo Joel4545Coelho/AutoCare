@@ -54,9 +54,9 @@ exports.createEasyPaySubscription = async (req, res) => {
 
         const payload = {
             capture: {
-                expiration_time: formatDateTime(expirationTime),
                 descriptive: `Subscription: ${plano.nome}`
             },
+            expiration_time: formatDateTime(expirationTime),
             currency: "EUR",
             customer: {
                 name: currentUser.name,
@@ -72,8 +72,7 @@ exports.createEasyPaySubscription = async (req, res) => {
             start_time: formatDateTime(startTime),
             failover: true,
             retries: 2,
-            method: "cc" // Credit card only
-            // Remove sdd_mandate entirely
+            method: "cc"
         };
 
         // Make API request to EasyPay
@@ -106,7 +105,12 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('EasyPay Error:', error.response?.data || error.message);
+        console.error('EasyPay API Error:', {
+            message: error.message,
+            response: error.response?.data,
+            config: error.config,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
         res.status(500).json({ 
             success: false, 
             message: 'Error creating subscription',
