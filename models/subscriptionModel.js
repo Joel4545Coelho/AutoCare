@@ -1,25 +1,26 @@
 const mongoose = require('mongoose');
 
-const subscriptionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  planoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plano', required: true },
-  dataInicio: { type: Date, required: true },
+const SubscriptionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+  planoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plano' },
+  dataInicio: { type: Date, default: Date.now },
   dataFim: { type: Date, required: true },
-  status: {
-    type: String,
-    enum: ['active', 'pending', 'pending_payment', 'canceled', 'expired'],
-    default: 'pending_payment'
+  status: { 
+    type: String, 
+    enum: ['active', 'canceled', 'expired', 'pending'], 
+    default: 'pending' 
   },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'initiated', 'completed', 'failed', 'refunded'],
-    default: 'initiated'
+  paymentStatus: { 
+    type: String, 
+    enum: ['pending', 'completed', 'failed'], 
+    default: 'pending' 
   },
-  level: { type: String, enum: ['basic', 'premium', 'medico'], required: true },
-  easypayId: { type: String },
-  easypayCheckoutId: { type: String },
-  transactionKey: { type: String },
-  lastChecked: { type: Date }
+  level: { 
+    type: String, 
+    enum: ["free", "basic", "premium", "medico"], 
+    required: true 
+  },
+  easypayId: String // Make sure this field exists for storing EasyPay ID
 }, { timestamps: true });
 
-module.exports = mongoose.model('Subscription', subscriptionSchema);
+module.exports = mongoose.model('Subscription', SubscriptionSchema);

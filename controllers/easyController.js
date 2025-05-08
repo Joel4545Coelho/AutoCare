@@ -109,14 +109,13 @@ exports.createEasyPaySubscription = async (req, res) => {
             planoId: plano._id,
             dataInicio: startTime,
             dataFim: expirationTime,
-            status: 'pending', 
-            paymentStatus: 'pending',
+            status: 'pending_payment',
+            paymentStatus: 'initiated',
             level: plano.level,
             easypayId: response.data.id,
             transactionKey: checkoutPayload.payment.capture.transaction_key,
             lastChecked: new Date()
         });
-        
 
         await novaAssinatura.save();
 
