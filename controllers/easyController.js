@@ -195,3 +195,13 @@ exports.checkSubscriptionStatus = async (req, res) => {
         });
     }
 };
+
+// Helper function to map our duration to EasyPay frequency
+function getFrequency(duracao) {
+    const map = {
+        'mensal': '1M',
+        'trimestral': '3M',
+        'anual': '1Y'
+    };
+    return map[duracao] || '1M';
+}
