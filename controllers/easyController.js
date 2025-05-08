@@ -50,29 +50,30 @@ exports.createEasyPaySubscription = async (req, res) => {
         else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
 
         // Create Checkout session for subscription
-        const checkoutPayload = {
-            type: ["subscription"],
-            payment: {
-                methods: ["cc", "mbw"], 
-                type: "sale",
-                capture: {
-                    descriptive: `Subscription: ${plano.nome}`,
-                    transaction_key: `sub-${currentUser._id}-${Date.now()}`
+            const checkoutPayload = {
+                type: ["subscription"],
+                payment: {
+                    methods: ["cc", "mbw"],
+                    type: "sale",
+                    capture: {
+                        descriptive: `Subscription: ${plano.nome}`,
+                        transaction_key: `sub-${currentUser._id}-${Date.now()}`
+                    },
+                    start_time: formatDateTime(startTime),
+                    frequency: getFrequency(plano.duracao),
+                    // Extend expiration time to 30 minutes (maximum allowed)
+                    expiration_time: formatDateTime(new Date(startTime.getTime() + 30 * 60000)),
+                    currency: "EUR",
+                    value: plano.preco,
+                    customer: {
+                        email: currentUser.email,
+                        name: currentUser.name,
+                        phone: currentUser.phone,
+                        phone_indicative: "+351",
+                        fiscal_number: currentUser.fiscalNumber,
+                        key: currentUser._id.toString()
+                    }
                 },
-                start_time: formatDateTime(startTime), // This must be in the future
-                frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(new Date(startTime.getTime() + 15 * 60000)), // 15 minutes from start
-                currency: "EUR",
-                value: plano.preco,
-                customer: {
-                    email: currentUser.email,
-                    name: currentUser.name,
-                    phone: currentUser.phone || '911234567',
-                    phone_indicative: "+351",
-                    fiscal_number: currentUser.fiscalNumber || "PT123456789",
-                    key: currentUser._id.toString()
-                }
-            },
             order: {
                 items: [{
                     description: plano.nome,
@@ -90,8 +91,10 @@ exports.createEasyPaySubscription = async (req, res) => {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            timeout: 10000 // Add timeout
         });
 
         // Create pending subscription record
