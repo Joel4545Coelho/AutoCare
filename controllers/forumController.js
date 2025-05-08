@@ -279,6 +279,7 @@ const editComment = async (req, res) => {
     } else if (req.body.image === 'null') {
       comment.image = undefined;
     }
+
     await comment.save();
     
     const populatedComment = await Comment.findById(comment._id)
@@ -315,6 +316,7 @@ const editReply = async (req, res) => {
     } else if (req.body.image === 'null') {
       reply.image = undefined;
     }
+
     await reply.save();
     
     const populatedReply = await Comment.findById(reply._id)
