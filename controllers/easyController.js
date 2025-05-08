@@ -5,8 +5,8 @@ const User = require('../models/user');
 
 const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
 const CHECKOUT_URL = `${EASYPAY_API_URL}/checkout`;
-const SUBSCRIPTION_URL = `${EASYPAY_API_URL}/subscription`;
-const API_KEY = process.env.EASYPAY_API_KEY;
+const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID; // Make sure this is set in your environment
+const API_KEY = process.env.EASYPAY_API_KEY; // Make sure this is set in your environment
 
 function formatDateTime(date) {
     const pad = num => num.toString().padStart(2, '0');
@@ -17,6 +17,10 @@ function formatDateTime(date) {
 exports.createEasyPaySubscription = async (req, res) => {
     const { planoId } = req.body;
     const currentUser = res.locals.user;
+
+    if (!ACCOUNT_ID || !API_KEY) {
+        throw new Error('EasyPay credentials not configured');
+    }
 
     try {
         // Check existing subscription
@@ -113,11 +117,12 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error:', error.response?.data || error.message);
+        console.error('Error:', error);
         res.status(500).json({
             success: false,
             message: 'Error creating subscription',
-            error: error.response?.data || error.message
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
