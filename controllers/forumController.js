@@ -276,6 +276,8 @@ const editComment = async (req, res) => {
 
     if (req.file) {
       comment.image = req.file.location;
+    } else if (req.body.image === 'null') {
+      comment.image = undefined;
     }
     await comment.save();
     
@@ -310,6 +312,8 @@ const editReply = async (req, res) => {
 
     if (req.file) {
       reply.image = req.file.location;
+    } else if (req.body.image === 'null') {
+      reply.image = undefined;
     }
     await reply.save();
     
