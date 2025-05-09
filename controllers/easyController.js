@@ -324,7 +324,7 @@ exports.verifySubscription = async (req, res) => {
   try {
     // 1. Verify the subscription with EasyPay
     const subscriptionResponse = await axios.get(
-  `${EASYPAY_API_URL}/subscription/${subscription.easypayCheckoutId}`,
+      `${EASYPAY_API_URL}/subscription/${checkoutId}`,
       {
         headers: {
           'AccountId': ACCOUNT_ID,
