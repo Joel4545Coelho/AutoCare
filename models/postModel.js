@@ -7,23 +7,29 @@ const postSchema = new mongoose.Schema({
   image: { type: String },
   tags: {
     type: [String],
-    default: [] // Ensure default is set
+    default: [],
+    validate: {
+      validator: function(tags) {
+        return tags.every(tag => typeof tag === 'string' && tag.trim().length > 0);
+      },
+      message: 'All tags must be non-empty strings'
+    }
   },
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
 }, { 
   timestamps: true,
-  toJSON: { virtuals: true }, // Ensure tags are included when converting to JSON
+  toJSON: { virtuals: true },
   toObject: { virtuals: true } 
 });
 
-// Add this to your Post model file
 postSchema.pre('save', function(next) {
-  // Ensure tags is always an array
   if (!Array.isArray(this.tags)) {
     this.tags = [];
   }
-  // Remove empty tags
-  this.tags = this.tags.filter(tag => tag && typeof tag === 'string');
+  // Trim and filter out empty tags
+  this.tags = this.tags
+    .map(tag => typeof tag === 'string' ? tag.trim() : '')
+    .filter(tag => tag.length > 0);
   next();
 });
 

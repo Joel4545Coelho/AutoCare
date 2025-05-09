@@ -79,7 +79,6 @@ const createPost = async (req, res) => {
     console.log('Raw request body:', req.body);
     console.log('Raw tags data:', req.body.tags);
 
-    // Handle tags - they come as array when using tags[] format
     let tags = [];
     if (req.body.tags) {
       if (Array.isArray(req.body.tags)) {
@@ -89,7 +88,6 @@ const createPost = async (req, res) => {
       }
     }
 
-    // For the tags[] format, body-parser converts it to an array automatically
     tags = tags.filter(tag => tag && typeof tag === 'string');
 
     console.log('Processed tags:', tags);
@@ -108,15 +106,11 @@ const createPost = async (req, res) => {
       title,
       content,
       tags,
-      image: req.file ? req.file.path : null,
+      image: req.file ? req.file.location : null,
       author,
     });
 
-    console.log('Post to be saved:', newPost);
-
     const savedPost = await newPost.save();
-    console.log('Saved post from DB:', savedPost);
-
     const populatedPost = await Post.findById(savedPost._id)
       .populate('author', 'username type avatar');
 
