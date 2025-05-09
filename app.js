@@ -7,6 +7,9 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const path = require("path");
 
+const app = express();
+app.use(express.static(path.join(__dirname, 'dist')));
+
 const authRoutes = require("./routes/authRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -23,9 +26,13 @@ const subroutes = require('./routes/subscriptionRoutes');
 const receitasP = require('./routes/receitasPaciente');
 const receitas_medico = require('./routes/receitas_medico')
 
-const app = express();
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
 const server = http.createServer(app);
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","http://10.1.3.14:8100","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
