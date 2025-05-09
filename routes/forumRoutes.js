@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require("../middlewares/IsAuth");
 const upload = require('../middlewares/multer');
 
-const { listPosts, createPost, createComment, createReply, editPost, editComment, editReply, deletePost, deleteComment, deleteReply, listPostsN } = require('../controllers/forumController');
+const { listPosts, createPost, createComment, createReply, editPost, editComment, editReply, deletePost, deleteComment, deleteReply, listPostsN, upvotePost, downvotePost, removePostVote, upvoteComment, downvoteComment, removeCommentVote } = require('../controllers/forumController');
 
 router.get('/forum', auth, listPosts);
 router.get('/forumN', auth, listPostsN);
