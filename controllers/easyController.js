@@ -246,6 +246,43 @@ exports.checkSubscriptionStatus = async (req, res) => {
     }
 };
 
+exports.cancelPendingSubscription = async (req, res) => {
+  const { subscriptionId } = req.body;
+  
+  try {
+    const subscription = await Subscription.findById(subscriptionId);
+    
+    if (!subscription || subscription.status !== 'pending') {
+      return res.json({ success: true, message: 'No pending subscription to cancel' });
+    }
+    
+    // If we have an EasyPay checkout ID, try to cancel it
+    if (subscription.easypayCheckoutId) {
+      try {
+        await axios.delete(`${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`, {
+          headers: {
+            'AccountId': ACCOUNT_ID,
+            'ApiKey': API_KEY
+          }
+        });
+      } catch (apiError) {
+        console.error('Failed to cancel EasyPay checkout:', apiError);
+      }
+    }
+    
+    // Delete the pending subscription
+    await Subscription.findByIdAndDelete(subscriptionId);
+    
+    res.json({ success: true, message: 'Pending subscription canceled' });
+  } catch (error) {
+    console.error('Error canceling pending subscription:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error canceling pending subscription' 
+    });
+  }
+};
+
 function getFrequency(duracao) {
     const map = {
         'mensal': '1M',
