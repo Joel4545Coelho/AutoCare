@@ -322,9 +322,9 @@ exports.verifySubscription = async (req, res) => {
   const { subscriptionId, checkoutId } = req.body;
 
   try {
-    // 1. Verify the subscription with EasyPay
-    const subscriptionResponse = await axios.get(
-      `${EASYPAY_API_URL}/subscription/${checkoutId}`,
+    // 1. First verify the checkout status
+    const checkoutResponse = await axios.get(
+      `${EASYPAY_API_URL}/checkout/${checkoutId}`,
       {
         headers: {
           'AccountId': ACCOUNT_ID,
@@ -333,35 +333,56 @@ exports.verifySubscription = async (req, res) => {
       }
     );
 
-    // 2. Check if subscription is active
-    if (subscriptionResponse.data.status !== 'active') {
-      return res.json({ 
-        success: false,
-        message: 'Subscription is not active yet'
+    const checkoutData = checkoutResponse.data;
+    console.log('Checkout status:', checkoutData);
+
+    // 2. If checkout is successful, verify the subscription
+    if (checkoutData.payment?.status === 'success') {
+      // Try to get subscription details (may not exist yet in EasyPay's system)
+      try {
+        const subscriptionResponse = await axios.get(
+          `${EASYPAY_API_URL}/subscription/${checkoutId}`,
+          {
+            headers: {
+              'AccountId': ACCOUNT_ID,
+              'ApiKey': API_KEY
+            }
+          }
+        );
+
+        console.log('Subscription status:', subscriptionResponse.data);
+      } catch (subscriptionError) {
+        console.log('Subscription not yet available in EasyPay system, but checkout was successful');
+      }
+
+      // 3. Update our database regardless of subscription API response
+      const subscription = await Subscription.findByIdAndUpdate(
+        subscriptionId,
+        {
+          status: 'active',
+          paymentStatus: 'completed',
+          dataInicio: new Date(),
+          easypaySubscriptionId: checkoutId
+        },
+        { new: true }
+      ).populate('planoId');
+
+      // 4. Update user
+      await User.findByIdAndUpdate(subscription.userId, {
+        sublevel: subscription.planoId.level,
+        subscription: subscription._id
+      });
+
+      return res.json({
+        success: true,
+        subscription
       });
     }
 
-    // 3. Update our database
-    const subscription = await Subscription.findByIdAndUpdate(
-      subscriptionId,
-      {
-        status: 'active',
-        paymentStatus: 'completed',
-        dataInicio: new Date(),
-        easypaySubscriptionId: checkoutId
-      },
-      { new: true }
-    ).populate('planoId');
-
-    // 4. Update user
-    await User.findByIdAndUpdate(subscription.userId, {
-      sublevel: subscription.planoId.level,
-      subscription: subscription._id
-    });
-
-    res.json({
-      success: true,
-      subscription
+    // If checkout wasn't successful
+    return res.status(400).json({
+      success: false,
+      message: 'Checkout not yet completed'
     });
 
   } catch (error) {
