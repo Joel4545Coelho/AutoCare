@@ -252,33 +252,44 @@ exports.cancelPendingSubscription = async (req, res) => {
   try {
     const subscription = await Subscription.findById(subscriptionId);
     
-    if (!subscription || subscription.status !== 'pending') {
-      return res.json({ success: true, message: 'No pending subscription to cancel' });
+    if (!subscription) {
+      return res.json({ success: true, message: 'Subscription not found' });
     }
-    
-    // If we have an EasyPay checkout ID, try to cancel it
-    if (subscription.easypayCheckoutId) {
-      try {
-        await axios.delete(`${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`, {
-          headers: {
-            'AccountId': ACCOUNT_ID,
-            'ApiKey': API_KEY
-          }
-        });
-      } catch (apiError) {
-        console.error('Failed to cancel EasyPay checkout:', apiError);
+
+    // Only cancel if still pending
+    if (subscription.status === 'pending') {
+      // Try to cancel EasyPay checkout if exists
+      if (subscription.easypayCheckoutId) {
+        try {
+          await axios.delete(`${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`, {
+            headers: {
+              'AccountId': ACCOUNT_ID,
+              'ApiKey': API_KEY
+            }
+          });
+        } catch (apiError) {
+          console.error('Failed to cancel EasyPay checkout:', apiError);
+          // Continue even if EasyPay cancellation fails
+        }
       }
+      
+      // Update status to canceled instead of deleting
+      subscription.status = 'canceled';
+      await subscription.save();
     }
+
+    res.json({ 
+      success: true, 
+      message: 'Pending subscription canceled',
+      subscriptionId: subscription._id
+    });
     
-    // Delete the pending subscription
-    await Subscription.findByIdAndDelete(subscriptionId);
-    
-    res.json({ success: true, message: 'Pending subscription canceled' });
   } catch (error) {
     console.error('Error canceling pending subscription:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error canceling pending subscription' 
+      message: 'Error canceling pending subscription',
+      error: error.message
     });
   }
 };
