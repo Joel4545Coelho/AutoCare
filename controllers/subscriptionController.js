@@ -166,7 +166,7 @@ exports.initiatePayment = async (req, res) => {
 
     res.json({ 
       success: true,
-      redirectTo: `/payment/confirmation?success=true&assinaturaId=${assinatura._id}`
+      redirectTo: `/payment/confirmation?success=true`
     });
   } catch (error) {
     console.error('Erro ao processar pagamento:', error);
