@@ -13,5 +13,6 @@ router.post('/pagamento', auth, subscriptionController.initiatePayment);
 // EasyPay routes
 router.post('/assinar-easypay', auth, easyController.createEasyPaySubscription);
 router.get('/check-status/:subscriptionId', auth, easyController.checkSubscriptionStatus);
+router.post('/cancel-pending/:subscriptionId', auth, easyController.cancelPendingSubscription);
 
 module.exports = router;
