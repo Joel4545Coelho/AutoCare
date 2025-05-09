@@ -5,28 +5,22 @@ const User = require('../models/user');
 
 const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
 const CHECKOUT_URL = `${EASYPAY_API_URL}/checkout`;
-const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID; // Make sure this is set in your environment
-const API_KEY = process.env.EASYPAY_API_KEY; // Make sure this is set in your environment
+const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID;
+const API_KEY = process.env.EASYPAY_API_KEY;
 
 function formatDateTime(date) {
     const pad = num => num.toString().padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-// Create EasyPay subscription
 exports.createEasyPaySubscription = async (req, res) => {
-    const { planoId, refresh } = req.body;
+    const { planoId } = req.body;
     const currentUser = res.locals.user;
 
     try {
-        // If refreshing, cancel the old checkout first
-        if (refresh && req.body.oldCheckoutId) {
-            await axios.delete(`${CHECKOUT_URL}/${req.body.oldCheckoutId}`, {
-                headers: {
-                    'AccountId': ACCOUNT_ID,
-                    'ApiKey': API_KEY
-                }
-            }).catch(err => console.log('Error cancelling old checkout:', err.message));
+        // Validate required environment variables
+        if (!ACCOUNT_ID || !API_KEY) {
+            throw new Error('EasyPay credentials not configured');
         }
 
         // Check existing subscription
@@ -47,27 +41,28 @@ exports.createEasyPaySubscription = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
 
+        // Calculate dates
         const now = new Date();
         const startTime = new Date(now.getTime() + 5 * 60000); // 5 minutes from now
-        const expirationTime = new Date(startTime); // Clone startTime
+        const expirationTime = new Date(startTime);
         
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
         else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
         else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
 
-        // Create Checkout session for subscription
+        // Create Checkout payload
         const checkoutPayload = {
             type: ["subscription"],
             payment: {
-                methods: ["cc", "mbw"], 
+                methods: ["cc", "mbw"],
                 type: "sale",
                 capture: {
                     descriptive: `Subscription: ${plano.nome}`,
                     transaction_key: `sub-${currentUser._id}-${Date.now()}`
                 },
-                start_time: formatDateTime(startTime), // This must be in the future
+                start_time: formatDateTime(startTime),
                 frequency: getFrequency(plano.duracao),
-                expiration_time: formatDateTime(new Date(startTime.getTime() + 15 * 60000)), // 15 minutes from start
+                expiration_time: formatDateTime(new Date(startTime.getTime() + 30 * 60000)), // 30 minutes
                 currency: "EUR",
                 value: plano.preco,
                 customer: {
@@ -100,12 +95,9 @@ exports.createEasyPaySubscription = async (req, res) => {
                 'Accept': 'application/json'
             },
             timeout: 10000
-        }).catch(error => {
-            console.error('EasyPay API Error:', error.response?.data || error.message);
-            throw new Error('Failed to create EasyPay checkout session');
         });
 
-        // Create pending subscription record
+        // Create subscription record
         const novaAssinatura = new Subscription({
             userId: currentUser._id,
             planoId: plano._id,
@@ -130,31 +122,32 @@ exports.createEasyPaySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error creating subscription:', error);
         res.status(500).json({
             success: false,
             message: 'Error creating subscription',
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: error.message
         });
     }
 };
 
-// Enhanced status checking
+// Enhanced status checking with proper callbacks
 exports.checkSubscriptionStatus = async (req, res) => {
     const { subscriptionId } = req.params;
 
     try {
-        // First check our database
         const subscription = await Subscription.findById(subscriptionId)
             .populate('planoId')
             .populate('userId');
 
         if (!subscription) {
-            return res.status(404).json({ success: false, message: 'Subscription not found' });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Subscription not found' 
+            });
         }
 
-        // If already active in our system, return early
+        // If already active, return immediately
         if (subscription.status === 'active') {
             return res.json({
                 success: true,
@@ -177,14 +170,14 @@ exports.checkSubscriptionStatus = async (req, res) => {
 
             const checkoutData = response.data;
 
-            // If payment was successful
+            // Handle successful payment
             if (checkoutData.payment?.status === 'success') {
-                // Update subscription to active
+                // Update subscription
                 subscription.status = 'active';
                 subscription.paymentStatus = 'completed';
                 await subscription.save();
 
-                // Update user
+                // Update user level
                 await User.findByIdAndUpdate(subscription.userId, {
                     sublevel: subscription.level,
                     subscription: subscription._id
@@ -198,7 +191,25 @@ exports.checkSubscriptionStatus = async (req, res) => {
             }
         }
 
-        // Default return if still pending
+        // Handle expired subscriptions
+        if (subscription.status === 'pending' && new Date() > subscription.dataFim) {
+            subscription.status = 'expired';
+            await subscription.save();
+            
+            // Reset user level if subscription expired
+            await User.findByIdAndUpdate(subscription.userId, {
+                sublevel: 'free',
+                subscription: null
+            });
+
+            return res.json({
+                success: true,
+                status: 'expired',
+                subscription
+            });
+        }
+
+        // Default return
         res.json({
             success: true,
             status: subscription.status || 'pending',
@@ -214,7 +225,6 @@ exports.checkSubscriptionStatus = async (req, res) => {
     }
 };
 
-// Helper function to map our duration to EasyPay frequency
 function getFrequency(duracao) {
     const map = {
         'mensal': '1M',
