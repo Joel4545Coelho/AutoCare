@@ -159,104 +159,115 @@ exports.createEasyPaySubscription = async (req, res) => {
 
 // Enhanced status checking with proper callbacks
 exports.checkSubscriptionStatus = async (req, res) => {
-    const { subscriptionId } = req.params;
+  const { subscriptionId } = req.params;
 
-    try {
-        const subscription = await Subscription.findById(subscriptionId)
-            .populate('planoId')
-            .populate('userId');
+  try {
+    const subscription = await Subscription.findById(subscriptionId)
+      .populate('planoId')
+      .populate('userId');
 
-        if (!subscription) {
-            return res.status(404).json({
-                success: false,
-                message: 'Subscription not found'
-            });
-        }
-
-        // If already active, return immediately
-        if (subscription.status === 'active') {
-            return res.json({
-                success: true,
-                status: 'active',
-                subscription
-            });
-        }
-
-        // Check with EasyPay API if we have a checkout ID
-        if (subscription.easypayCheckoutId) {
-            try {
-                const response = await axios.get(
-                    `${EASYPAY_API_URL}/subscription/${subscription.easypayCheckoutId}`,
-                    {
-                        headers: {
-                            'AccountId': ACCOUNT_ID,
-                            'ApiKey': API_KEY
-                        }
-                    }
-                );
-
-                const subscriptionData = response.data;
-                console.log('EasyPay subscription status:', subscriptionData);
-
-                // Handle successful payment
-                if (subscriptionData.status === 'active') {
-                    // Update subscription
-                    subscription.status = 'active';
-                    subscription.paymentStatus = 'completed';
-                    subscription.dataInicio = new Date();
-
-                    // Calculate end date based on plan duration
-                    const endDate = new Date(subscription.dataInicio);
-                    if (subscription.planoId.duracao === 'mensal') {
-                        endDate.setMonth(endDate.getMonth() + 1);
-                    } else if (subscription.planoId.duracao === 'trimestral') {
-                        endDate.setMonth(endDate.getMonth() + 3);
-                    } else if (subscription.planoId.duracao === 'anual') {
-                        endDate.setFullYear(endDate.getFullYear() + 1);
-                    }
-                    subscription.dataFim = endDate;
-
-                    await subscription.save();
-
-                    // Update user level
-                    await User.findByIdAndUpdate(subscription.userId, {
-                        sublevel: subscription.planoId.level,
-                        subscription: subscription._id
-                    });
-
-                    return res.json({
-                        success: true,
-                        status: 'active',
-                        subscription
-                    });
-                } else {
-                    console.log('Payment not yet completed, current status:', subscriptionData.status);
-                    return res.json({
-                        success: true,
-                        status: subscriptionData.status || 'pending',
-                        subscription
-                    });
-                }
-            } catch (apiError) {
-                console.error('Error checking with EasyPay:', apiError);
-                // Continue with local status if API check fails
-            }
-        }
-
-        res.json({
-            success: true,
-            status: subscription.status || 'pending',
-            subscription
-        });
-
-    } catch (error) {
-        console.error('Error checking subscription:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error checking subscription status',
-            error: error.message
-        });
+    if (!subscription) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Subscription not found' 
+      });
     }
+
+    // If already active, return immediately
+    if (subscription.status === 'active') {
+      return res.json({
+        success: true,
+        status: 'active',
+        subscription
+      });
+    }
+
+    // Check with EasyPay API if we have a checkout ID
+    if (subscription.easypayCheckoutId) {
+      try {
+        // First check the checkout status
+        const checkoutResponse = await axios.get(
+          `${EASYPAY_API_URL}/checkout/${subscription.easypayCheckoutId}`,
+          {
+            headers: {
+              'AccountId': ACCOUNT_ID,
+              'ApiKey': API_KEY
+            }
+          }
+        );
+
+        const checkoutData = checkoutResponse.data;
+        console.log('EasyPay checkout status:', checkoutData);
+
+        // If checkout payment is successful, check the subscription status
+        if (checkoutData.payment?.status === 'success') {
+          // Now check the subscription status
+          const subscriptionResponse = await axios.get(
+            `${EASYPAY_API_URL}/subscription/${subscription.easypayCheckoutId}`,
+            {
+              headers: {
+                'AccountId': ACCOUNT_ID,
+                'ApiKey': API_KEY
+              }
+            }
+          );
+
+          const subscriptionData = subscriptionResponse.data;
+          console.log('EasyPay subscription status:', subscriptionData);
+
+          if (subscriptionData.status === 'active') {
+            // Update subscription
+            subscription.status = 'active';
+            subscription.paymentStatus = 'completed';
+            subscription.dataInicio = new Date();
+            
+            // Calculate end date based on plan duration
+            const endDate = new Date(subscription.dataInicio);
+            if (subscription.planoId.duracao === 'mensal') {
+              endDate.setMonth(endDate.getMonth() + 1);
+            } else if (subscription.planoId.duracay === 'trimestral') {
+              endDate.setMonth(endDate.getMonth() + 3);
+            } else if (subscription.planoId.duracao === 'anual') {
+              endDate.setFullYear(endDate.getFullYear() + 1);
+            }
+            subscription.dataFim = endDate;
+
+            await subscription.save();
+
+            // Update user level
+            await User.findByIdAndUpdate(subscription.userId, {
+              sublevel: subscription.planoId.level,
+              subscription: subscription._id
+            });
+
+            return res.json({
+              success: true,
+              status: 'active',
+              subscription
+            });
+          }
+        }
+      } catch (apiError) {
+        console.error('Error checking with EasyPay:', apiError);
+        // Continue with local status if API check fails
+      }
+    }
+
+    // Return current status
+    res.json({
+      success: true,
+      status: subscription.status || 'pending',
+      subscription
+    });
+
+  } catch (error) {
+    console.error('Error checking subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking subscription status',
+      error: error.message
+    });
+  }
 };
 
 exports.cancelPendingSubscription = async (req, res) => {
