@@ -7,6 +7,7 @@ const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
 const CHECKOUT_URL = `${EASYPAY_API_URL}/checkout`;
 const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID;
 const API_KEY = process.env.EASYPAY_API_KEY;
+const MAX_RETRIES = 3;
 
 function formatDateTime(date) {
     const pad = num => num.toString().padStart(2, '0');
@@ -18,16 +19,27 @@ exports.createEasyPaySubscription = async (req, res) => {
     const currentUser = res.locals.user;
 
     try {
-        // Validate required environment variables
         if (!ACCOUNT_ID || !API_KEY) {
             throw new Error('EasyPay credentials not configured');
         }
 
-        // Check existing subscription
-        const existingSubscription = await Subscription.findOne({
-            userId: currentUser._id,
-            status: 'active'
-        });
+        // Check existing subscription with retries
+        let existingSubscription;
+        let attempts = 0;
+        
+        while (attempts < MAX_RETRIES) {
+            try {
+                existingSubscription = await Subscription.findOne({
+                    userId: currentUser._id,
+                    status: 'active'
+                });
+                break;
+            } catch (dbError) {
+                attempts++;
+                if (attempts >= MAX_RETRIES) throw dbError;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
         if (existingSubscription) {
             return res.status(400).json({
@@ -41,16 +53,17 @@ exports.createEasyPaySubscription = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
 
-        // Calculate dates
+        // Calculate dates with buffer time
         const now = new Date();
-        const startTime = new Date(now.getTime() + 5 * 60000); // 5 minutes from now
+        const startTime = new Date(now.getTime() + 10 * 60000); // 10 minutes buffer
         const expirationTime = new Date(startTime);
         
+        // Set expiration based on plan duration
         if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
         else if (plano.duracao === 'trimestral') expirationTime.setMonth(expirationTime.getMonth() + 3);
         else if (plano.duracao === 'anual') expirationTime.setFullYear(expirationTime.getFullYear() + 1);
 
-        // Create Checkout payload
+        // Create Checkout payload with enhanced error handling
         const checkoutPayload = {
             type: ["subscription"],
             payment: {
@@ -71,7 +84,8 @@ exports.createEasyPaySubscription = async (req, res) => {
                     phone: currentUser.phone || '911234567',
                     phone_indicative: "+351",
                     fiscal_number: currentUser.fiscalNumber || "PT123456789",
-                    key: currentUser._id.toString()
+                    key: currentUser._id.toString(),
+                    language: "PT"
                 }
             },
             order: {
@@ -86,16 +100,28 @@ exports.createEasyPaySubscription = async (req, res) => {
             }
         };
 
-        // Create Checkout session
-        const checkoutResponse = await axios.post(CHECKOUT_URL, checkoutPayload, {
-            headers: {
-                'AccountId': ACCOUNT_ID,
-                'ApiKey': API_KEY,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            timeout: 10000
-        });
+        // Enhanced API call with retries
+        let checkoutResponse;
+        attempts = 0;
+        
+        while (attempts < MAX_RETRIES) {
+            try {
+                checkoutResponse = await axios.post(CHECKOUT_URL, checkoutPayload, {
+                    headers: {
+                        'AccountId': ACCOUNT_ID,
+                        'ApiKey': API_KEY,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    timeout: 15000
+                });
+                break;
+            } catch (apiError) {
+                attempts++;
+                if (attempts >= MAX_RETRIES) throw apiError;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
 
         // Create subscription record
         const novaAssinatura = new Subscription({
@@ -126,7 +152,7 @@ exports.createEasyPaySubscription = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error creating subscription',
-            error: error.message
+            error: error.response?.data?.message || error.message
         });
     }
 };
