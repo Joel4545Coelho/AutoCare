@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #001420, #030b13);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background-color: #fff;
+            color: #333;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-container h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        form label {
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        form input {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        form input:focus {
+            border-color: #4f93c0;
+        }
+
+        button {
+            padding: 0.8rem;
+            background-color: #0099ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #28527a;
+        }
+
+        a {
+            text-align: center;
+            display: block;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #4f93c0;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .select-container {
+            max-width: 400px;
+        }
+
+        .select2-container--default .select2-selection--multiple {
+            color: black !important;
+        }
+
+        .select2-container--default .select2-results__option {
+            color: black;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 1.5rem;
+            }
+
+            form input,
+            button {
+                font-size: 0.9rem;
+                padding: 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="login-container">
+        <h1>Sign Up</h1>
+        <form method="POST" id="signinForm">
+            <label for="username">Name</label>
+            <input type="text" id="username" name="username" required />
+
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+
+            <label for="autoimmune_diseases">Selecione uma ou mais Doenças Autoimunes:</label>
+            <select id="autoimmune_diseases" name="autoimmune_diseases[]" multiple style="width: 100%;">
+                <option value="diabetes_tipo1">Diabetes Tipo 1</option>
+                <option value="artrite_reumatoide">Artrite Reumatoide</option>
+                <option value="psoriase">Psoríase</option>
+                <option value="esclerose_multipla">Esclerose Múltipla</option>
+                <option value="doenca_celiaca">Doença Celíaca</option>
+                <option value="tireoidite_hashimoto">Tireoidite de Hashimoto</option>
+                <option value="doenca_graves">Doença de Graves</option>
+                <option value="lupus">Lúpus Eritematoso Sistêmico</option>
+                <option value="sindrome_sjogren">Síndrome de Sjögren</option>
+                <option value="doenca_intestinal_inflamatoria">Doença Inflamatória Intestinal</option>
+                <option value="doenca_crohn">Doença de Crohn</option>
+                <option value="colite_ulcerativa">Colite Ulcerativa</option>
+                <option value="miastenia_grave">Miastenia Grave</option>
+                <option value="alopecia_areata">Alopecia Areata</option>
+                <option value="esclerodermia">Esclerodermia</option>
+                <option value="vitiligo">Vitiligo</option>
+                <option value="espondilite_anquilosante">Espondilite Anquilosante</option>
+            </select>
+            <br>
+            <button id="signinBtn">Sign In</button>
+            <a class="nav-link" href="/">Já tens uma conta? Faça o login!</a>
+        </form>
+        <div id="error_message" style="display: none; border:red 3px solid;"></div>
+    </div>
+</body>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#autoimmune_diseases').select2({
+            placeholder: "Procure ou selecione uma ou mais doenças autoimunes",
+            allowClear: true
+        });
+
+        $("#signinBtn").click((e) => {
+            e.preventDefault();
+
+            let selectedDiseases = $("#autoimmune_diseases").val();
+
+            $.ajax({
+                method: "POST",
+                url: "/SignIn_submit",
+                contentType: "application/json", 
+                data: JSON.stringify({
+                    username: $("#username").val(),
+                    email: $("#email").val(),
+                    password: $("#password").val(),
+                    type: "paciente",
+                    doenca: selectedDiseases
+                })
+            }).done((res) => {
+                console.log("Usuário cadastrado:", res);
+                window.location.href = "/";
+            }).fail((err) => {
+                console.error("Erro ao criar conta:", err);
+                $("#error_message").text("Erro ao criar conta").show();
+            });
+        });
+    });
+</script>
+
+</html>

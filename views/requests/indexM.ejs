@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>Available Medics</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #181818 !important;
+            margin: 0;
+            color: #f4f4f9 !important;
+        }
+
+        h1 {
+            color: #f4f4f9;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .medics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        .medic-card {
+            background-color: #222;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .medic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .medic-card img {
+            width: 250px;
+            height: 250px;
+            border-radius: 0;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        .medic-card h3 {
+            margin: 10px 0;
+            font-size: 1.5em;
+            color: #4caf50;
+        }
+
+        .medic-card p {
+            margin: 5px 0;
+            color: #bbb;
+        }
+
+        .medic-card button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .medic-card button:hover {
+            background-color: #388e3c;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 35% !important;
+            left: 35% !important;
+            width: 30% !important;
+            height: 30% !important;
+            background-color: rgba(0, 0, 0, 0.7) !important;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #333 !important;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: #f4f4f9;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            resize: none;
+            background-color: #222;
+            color: #f4f4f9;
+        }
+
+        .modal-content button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+
+        .modal-content button.cancel {
+            background-color: #dc3545;
+        }
+
+        .modal-content button.cancel:hover {
+            background-color: #c82333;
+        }
+
+        @media (max-width: 768px) {
+            .medics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .medics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .no-medics {
+            text-align: center;
+            font-size: 18px;
+            color: #bbb;
+            margin-top: 20px;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container-fluid">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <% if (userType==='paciente' ) { %>
+            <a class="navbar-brand" href="/home">AutoCare</a>
+            <% } else if (userType==='medico' ) { %>
+              <a class="navbar-brand">AutoCare</a>
+              <% } %>
+                <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                  <ul class="navbar-nav">
+                    <% if (userType==='paciente' ) { %>
+                      <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                      </li>
+                      <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                      <% } else if (userType==='medico' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                            pacientes</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                            requests</a></li>
+                        <% } else if (userType==='organizacao' ) { %>
+                          <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                          <% } else if (userType==='admin' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                            </li>
+                            <% } %>
+                              <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+                  </ul>
+                </div>
+        </div>
+      </nav>
+</header>
+
+<body>
+    <br>
+    <h1>Available Medics</h1>
+    <div class="medics-grid">
+        <% if (medics.length===0) { %>
+            <p class="no-medics">No medics available or all medics are already associated.</p>
+            <% } else { %>
+                <% medics.forEach(medic=> { %>
+                    <div class="medic-card">
+                        <img src="<%= medic.avatar %>" alt="<%= medic.username %>'s avatar" />
+                        <h3>
+                            <%= medic.username %>
+                        </h3>
+                        <p><strong>Specialty:</strong>
+                            <%= medic.expecialidade %>
+                        </p>
+                        <button onclick="openModal('<%= medic._id %>')">Send Message Request</button>
+                    </div>
+                    <% }) %>
+                        <% } %>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Reason for Messaging</h3>
+            <textarea id="reason" placeholder="Enter your reason for messaging..."></textarea>
+            <button onclick="sendRequest()">Send</button>
+            <button class="cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentMedicoId = null;
+
+    // Function to open the modal
+    function openModal(medicoId) {
+        currentMedicoId = medicoId;
+        document.getElementById("modal").style.display = "flex";
+    }
+
+    // Function to close the modal
+    function closeModal() {
+        document.getElementById("modal").style.display = "none";
+    }
+
+    // Function to send the message request
+    async function sendRequest() {
+        const reason = document.getElementById("reason").value;
+
+        if (!reason) {
+            alert("Please enter a reason for messaging.");
+            return;
+        }
+
+        try {
+            const response = await fetch("/sendRequest", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ medicoId: currentMedicoId, reason }), // Send the data as JSON
+            });
+
+            const result = await response.json(); // Parse the response as JSON
+            if (result.success) {
+                alert("Message request sent!");
+                closeModal();
+            } else {
+                alert("Failed to send request: " + result.message);
+            }
+        } catch (error) {
+            console.error("Error sending request:", error);
+            alert("An error occurred while sending the request.");
+        }
+    }
+</script>
+
+</html>

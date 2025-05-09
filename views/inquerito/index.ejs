@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inquérito Diário</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #01010a;
+      color: #ffffff;
+    }
+
+    .container2 {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #222222;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      color: #ffffff;
+    }
+
+    select,
+    input,
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .btn-limpar {
+      background: #dc3545;
+    }
+
+    .btn-limpar:hover {
+      background: #a71d2a;
+    }
+
+    .grafico-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <% if (userType==='paciente' ) { %>
+        <a class="navbar-brand" href="/home">AutoCare</a>
+        <% } else if (userType==='medico' ) { %>
+          <a class="navbar-brand">AutoCare</a>
+          <% } %>
+            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+              <ul class="navbar-nav">
+                <% if (userType==='paciente' ) { %>
+                  <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                  </li>
+                  <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                  <% } else if (userType==='medico' ) { %>
+                    <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                        pacientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                        requests</a></li>
+                    <% } else if (userType==='organizacao' ) { %>
+                      <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                      <% } else if (userType==='admin' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                        </li>
+                        <% } %>
+                          <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+              </ul>
+            </div>
+    </div>
+  </nav>
+</header>
+
+<body>
+  <main class="container2">
+    <h1 style="text-align: center;">Inquérito Diário de Sintomas</h1>
+    <br>
+    <section class="paciente-section">
+      <h2>Selecione a doença</h2>
+      <select id="paciente-selecionado">
+        <option value="doenca-selecionada">Selecione uma Doença</option>
+      </select>
+    </section>
+
+    <section class="perguntas-section" style="display:none;">
+      <h2>Responda ao Inquérito</h2>
+      <form id="inquerito-form">
+        <div id="perguntas-container"></div>
+        <button type="submit" class="button">Enviar Respostas</button>
+      </form>
+    </section>
+
+    <section class="grafico-section">
+      <div class="grafico-header">
+        <h2>Suas Respostas</h2>
+      </div>
+      <canvas id="grafico"></canvas>
+    </section>
+  </main>
+
+  <script>
+    const apiBaseUrl = "http://localhost:25565";
+    let authToken = localStorage.getItem("authToken");
+
+    const doencaSelect = $("#paciente-selecionado");
+    const perguntasContainer = $("#perguntas-container");
+    const perguntasSection = $(".perguntas-section");
+
+    let grafico;
+
+    function carregarDoencas() {
+      $.ajax({
+        url: `${apiBaseUrl}/doencas`,
+        method: "GET",
+        headers: { "Authorization": `Bearer ${authToken}` },
+        success: function (data) {
+          if (data.doencas.length === 0) {
+            alert("Nenhuma doença cadastrada para este usuário.");
+            return;
+          }
+
+          doencaSelect.html(`<option value="">Selecione uma Doença</option>`);
+
+          data.doencas.forEach((doenca) => {
+            doencaSelect.append(`<option value="${doenca}">${doenca}</option>`);
+          });
+        },
+        error: function () {
+          alert("Erro ao carregar doenças.");
+        }
+      });
+    }
+
+    doencaSelect.on("change", function () {
+      let doenca = $(this).val();
+
+      if (grafico) grafico.destroy();
+      carregarGrafico(doenca);
+
+      if (doenca) {
+        const doencaFormatada = encodeURIComponent(doenca.replace(/ /g, "_"));
+
+        $.ajax({
+          url: `${apiBaseUrl}/perguntas/${doencaFormatada}`,
+          method: "GET",
+
+          success: function (perguntas) {
+            perguntasContainer.html(
+              perguntas.map(
+                (pergunta, index) => `
+                        <div>
+                            <label for="sintoma${index}">${pergunta}</label>
+                            <input type="number" min="1" max="10" name="sintoma${index}" id="sintoma${index}" required>
+                        </div>`
+              ).join("")
+            );
+
+            perguntasSection.show();
+          },
+          error: function () {
+            alert("Erro ao carregar perguntas para essa doença.");
+          }
+        });
+      } else {
+        perguntasSection.hide();
+      }
+    });
+
+    $("#inquerito-form").submit(function (event) {
+      event.preventDefault();
+
+
+      let doenca = $("#paciente-selecionado").val();
+      if (!doenca) {
+        alert("Selecione uma doença.");
+        return;
+      }
+
+      let sintomas = [];
+      $("#perguntas-container input").each(function () {
+        sintomas.push({ nome: $(this).prev("label").text(), escala: $(this).val() });
+      });
+
+      $.ajax({
+        url: `${apiBaseUrl}/inqueritos/inquerito`,
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ doenca, sintomas }),
+        success: function () {
+          alert("Respostas enviadas com sucesso!");
+          $("#inquerito-form")[0].reset();
+          $(".perguntas-section").hide();
+        },
+        error: function () {
+          alert("Erro ao enviar respostas.");
+        }
+      });
+    });
+
+    function carregarGrafico(doencaselc) {
+      $.ajax({
+        url: `/inqueritos/inqueritosGET?doencaselc=${encodeURIComponent(doencaselc)}`,
+        method: "GET",
+        data: {
+          doencaselc: doencaselc
+        },
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        success: function (inqueritos) {
+          const sintomas = {};
+          console.log("YO" + inqueritos);
+
+          inqueritos.forEach((inq) => {
+            inq.sintomas.forEach((sintoma) => {
+              if (!sintomas[sintoma.nome]) sintomas[sintoma.nome] = [];
+              sintomas[sintoma.nome].push(sintoma.escala);
+            });
+          });
+
+          const nomes = Object.keys(sintomas);
+          const valores = nomes.map(
+            (nome) => sintomas[nome].reduce((a, b) => a + b, 0) / sintomas[nome].length
+          );
+
+          if (grafico) grafico.destroy();
+
+          const graficoCanvas = document.getElementById("grafico");
+          grafico = new Chart(graficoCanvas, {
+            type: "bar",
+            data: {
+              labels: nomes,
+              datasets: [
+                {
+                  label: "Sua Média de Escala",
+                  data: valores,
+                  backgroundColor: "rgba(75, 192, 192, 0.2)",
+                  borderColor: "rgba(75, 192, 192, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: true, max: 10 },
+              },
+            },
+          });
+        },
+        error: function () {
+          console.log("error");
+        }
+      });
+    }
+    $(document).ready(function () {
+      carregarDoencas();
+      carregarGrafico();
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <style>
+        /* Estilo geral */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            color: #ffffff;
+            margin-top: 20px;
+        }
+
+        /* Contêiner de notícias */
+        .news-container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1f1e1e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        /* Estilo de cada notícia */
+        .news-item {
+            padding: 20px;
+            border-bottom: 1px solid #000000;
+            margin-bottom: 30px;
+            /* Espaçamento aumentado */
+            background-color: #181818;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-item h2 {
+            font-size: 24px;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .news-item p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #ffffff;
+        }
+
+        .news-meta {
+            font-size: 14px;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        .input-container {
+            width: 100%;
+            padding: 10px;
+            background: #f9f9f9;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-container input {
+            width: 20%;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        .input-container button {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            padding: 10px;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container-fluid">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <% if (userType==='paciente' ) { %>
+            <a class="navbar-brand" href="/home">AutoCare</a>
+            <% } else if (userType==='medico' ) { %>
+              <a class="navbar-brand">AutoCare</a>
+              <% } %>
+                <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                  <ul class="navbar-nav">
+                    <% if (userType==='paciente' ) { %>
+                      <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                      </li>
+                      <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                      <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                      <% } else if (userType==='medico' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                            pacientes</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                            requests</a></li>
+                        <% } else if (userType==='organizacao' ) { %>
+                          <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                          <% } else if (userType==='admin' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                            </li>
+                            <% } %>
+                              <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+                  </ul>
+                </div>
+        </div>
+      </nav>
+</header>
+<body data-user-type="<%= userType %>" data-user-id="<%= currentUser._id %>"
+    data-username="<%= currentUser.username %>">
+    <br>
+    <h1>Noticias</h1>
+    <div class="news-container">
+        <% for (var i=0; i < lista.length; i++) { %>
+            <div class="news-item" data-news-id="<%= lista[i]._id %>">
+                <h2>
+                    <%= lista[i].title %>
+                </h2>
+                <p>
+                    <%= lista[i].content %>
+                </p>
+                <% if (lista[i].image) { %>
+                    <p><img src="<%= lista[i].image %>" alt="News Image" style="max-width: 100%;"></p>
+                    <% } %>
+                        <p>By <%= lista[i].organization_id ? lista[i].organization_id.username : 'Unknown' %> on <%= new
+                                    Date(lista[i].createdAt).toLocaleString() %>
+                        </p>
+
+                        <% if (lista[i].organization_id &&
+                            lista[i].organization_id._id.toString()===currentUser._id.toString()) { %>
+                            <button class="delete-btn" data-id="<%= lista[i]._id %>">Delete</button>
+                            <% } %>
+            </div>
+            <% } %>
+    </div>
+</body>
+
+<footer id="footer">
+    <div id="input-containerr" class="input-container">
+        <label for="titulo" id="titulo_l">titulo</label>
+        <input name="titulo" id="titulo" placeholder="Insira o Título">
+
+        <label for="conteudo" id="conteudo_l">conteúdo</label>
+        <input name="conteudo" id="conteudo" placeholder="Insira o conteúdo">
+
+        <label for="imagem" id="imagem_l">imagem</label>
+        <input name="imagem" id="imagem" placeholder="Insira a URL da imagem">
+        <button id="button">inserir</button>
+    </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    var username = $("body").data("username");
+    var userId = $("body").data("user-id");
+    var userType = "<%= userType %>";
+    console.log(userType);
+    $(document).ready(function () {
+        if (userType == "paciente" || userType == "medico" ||userType == "admin") {
+            $("#titulo").hide();
+            $("#conteudo").hide();
+            $("#button").hide();
+            $("#titulo_l").hide();
+            $("#conteudo_l").hide();
+            $("#input-containerr").hide();
+            $("footer").hide();
+        }
+    })
+
+    $("#button").click(() => {
+        $.ajax({
+            method: "post",
+            url: "/inserir",
+            data: {
+                title: $("#titulo").val(),
+                content: $("#conteudo").val(),
+                image: $("#imagem").val()
+            }
+        }).done((response) => {
+            console.log("News inserted successfully");
+
+            // Append the new news item dynamically
+            const newNewsItem = `
+        <div class="news-item" data-news-id="${response.noticia._id}">
+            <h2>${response.noticia.title}</h2>
+            <p>${response.noticia.content}</p>
+            ${response.noticia.image ? `<p><img src="${response.noticia.image}" alt="News Image" style="max-width: 100%;"></p>` : ''}
+            <p>By ${username} on ${new Date(response.noticia.createdAt).toLocaleString()}</p>
+            ${response.noticia.organization_id === userId ? `<button class="delete-btn" data-id="${response.noticia._id}">Delete</button>` : ''}
+        </div>`;
+
+            $(".news-container").prepend(newNewsItem);
+
+            // Clear input fields
+            $("#titulo").val("");
+            $("#conteudo").val("");
+            $("#imagem").val("");
+
+        }).fail((err) => {
+            console.log("FAIL", err);
+        });
+    });
+
+
+    $(document).on("click", ".delete-btn", function () {
+        let newsId = $(this).attr("data-id");
+        let newsItem = $(this).closest(".news-item");
+
+        $.ajax({
+            method: "DELETE",
+            url: `/delete/${newsId}`
+        }).done((response) => {
+            console.log("Deleted successfully");
+            newsItem.remove();
+        }).fail((err) => {
+            console.log("Failed to delete");
+        });
+    });
+
+</script>
+
+</html>

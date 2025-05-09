@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicamentos e Consultas</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    form label {
+      margin-right: 5px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      margin: 0 auto;
+      width: fit-content;
+    }
+
+    form input,
+    form select,
+    form textarea {
+      width: 200px;
+      /* Adjust width as needed */
+    }
+
+    form label {
+      margin-bottom: 5px;
+      /* Space between label and input */
+    }
+
+    h1,
+    h2 {
+      color: #ffffff;
+      text-align: center;
+    }
+
+    th {
+      background-color: #333333;
+      color: #ffffff;
+      padding: 8px;
+    }
+
+    td {
+      background-color: #222222;
+      padding: 8px;
+      text-align: center;
+    }
+
+    button {
+      background-color: #444444;
+      color: #ffffff;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background-color: #555555;
+    }
+
+    .modal,
+    .modal-background {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    #editModal,
+    #eventModal {
+      background-color: #222222;
+      color: #ffffff;
+    }
+
+    input,
+    select,
+    textarea {
+      background-color: #333333;
+      color: #e0e0e0;
+      border: 1px solid #444444;
+      padding: 5px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
+    .table-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    .table-wrapper {
+      width: 100px;
+      height: 300px;
+      overflow: auto;
+      border: 1px solid #444;
+      padding: 10px;
+      background-color: #1e1e1e;
+      border-radius: 10px;
+    }
+
+    .consultasTable {
+      width: fit-content;
+    }
+
+    .fc-event {
+      color: #ffffff !important;
+    }
+
+    #calendar {
+      width: 80%;
+      max-width: 1400px;
+      margin: 20px auto;
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    #modalBackground {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+
+    .fc-daygrid-day a {
+      text-decoration: none !important;
+      color: inherit !important;
+    }
+  </style>
+
+</head>
+
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <% if (userType==='paciente' ) { %>
+        <a class="navbar-brand" href="/home">AutoCare</a>
+        <% } else if (userType==='medico' ) { %>
+          <a class="navbar-brand">AutoCare</a>
+          <% } %>
+            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+              <ul class="navbar-nav">
+                <% if (userType==='paciente' ) { %>
+                  <li class="nav-item"><a class="nav-link" href="/forumN">Forum</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/inquerito">Inqueritos diarios</a>
+                  </li>
+                  <li class="nav-item"><a class="nav-link" href="/get_newsN">Noticias</a></li>
+                  <li class="nav-item"><a class="nav-link" href="/medicsN">Médicos Disponíveis</a></li>
+                  <% } else if (userType==='medico' ) { %>
+                    <li class="nav-item"><a class="nav-link" href="/chats">Chats</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/get_inquerito">Inqueritos dos
+                        pacientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/messagerequestsN">Chat
+                        requests</a></li>
+                    <% } else if (userType==='organizacao' ) { %>
+                      <li class="nav-item"><a class="nav-link" href="/get_news">Noticias</a></li>
+                      <% } else if (userType==='admin' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/users">User CRUD</a>
+                        </li>
+                        <% } %>
+                          <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+              </ul>
+            </div>
+    </div>
+  </nav>
+</header>
+
+<body>
+  <br>
+  <h1>Consultas e Medicamentos</h1>
+
+  <!-- Table container for side-by-side tables -->
+  <div class="table-container">
+    <!-- Consultas Table -->
+    <table id="consultasTable" class="display">
+      <thead>
+        <tr>
+          <th>Médico</th>
+          <th>Data</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% consultas.forEach(consulta=> { %>
+          <tr>
+            <td>
+              <%= consulta.medico %>
+            </td>
+            <td>
+              <%= consulta.data %>
+            </td>
+            <td>
+              <%= consulta.hora %>
+            </td>
+          </tr>
+          <% }); %>
+      </tbody>
+    </table>
+
+    <!-- Medicamentos Table -->
+    <table id="medicamentosTable" class="display">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Hora</th>
+          <th>Quantidade</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% medicamentos.forEach(medicamento=> { %>
+          <tr id="medicamento-<%= medicamento._id %>">
+            <td>
+              <%= medicamento.nome %>
+            </td>
+            <td>
+              <%= medicamento.hora %>
+            </td>
+            <td>
+              <%= medicamento.quantidade %>
+            </td>
+            <td>
+              <button
+                onclick="editarMedicamento('<%= medicamento._id %>', '<%= medicamento.nome %>', '<%= medicamento.hora %>', '<%= medicamento.quantidade %>')">Editar</button>
+              <button
+                onclick="excluirMedicamento('<%= medicamento._id %>', '<%= medicamento.hora %>', '<%= medicamento.nome %>')">Excluir</button>
+            </td>
+          </tr>
+          <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <h1>Adicionar Medicamento</h1>
+  <form action="/add-medicamento" method="POST">
+    <label for="nome">Nome:</label>
+    <input type="text" id="nome" name="nome" required><br>
+
+    <label for="hora">Hora:</label>
+    <input type="text" id="hora" name="hora" required><br>
+
+    <label for="quantidade">Quantidade:</label>
+    <input type="text" id="quantidade" name="quantidade" required><br>
+
+    <button type="submit">Adicionar Medicamento</button>
+  </form>
+
+  <h2>Calendário</h2>
+  <div id='calendar'></div>
+
+  <!-- Modal for event details -->
+  <div id="eventModal"
+    style="display: none; border: 1px solid black; padding: 20px; background-color: #222222; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000;">
+    <h2>Detalhes do Evento</h2>
+    <p><strong>Nome:</strong> <span id="eventTitle"></span></p>
+    <p><strong>Data:</strong> <span id="eventDate"></span></p>
+    <p><strong>Hora:</strong> <span id="eventTime"></span></p>
+    <p id="eventModalQuantity"><strong>Quantidade:</strong> <span id="eventQuantity"></span></p>
+    <button onclick="closeEventModal()">Fechar</button>
+  </div>
+
+  <div id="modalBackground"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999;">
+  </div>
+  <div id="data" data-medicamentos='<%- JSON.stringify(medicamentos) %>'
+    data-consultas='<%- JSON.stringify(consultas) %>'></div>
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  var dataElement = document.getElementById("data");
+  var medicamentos = JSON.parse(dataElement.getAttribute("data-medicamentos"));
+  var consultas = JSON.parse(dataElement.getAttribute("data-consultas"));
+  function closeEventModal() {
+    document.getElementById("eventModal").style.display = "none";
+    document.getElementById("modalBackground").style.display = "none";
+  }
+  $(document).ready(function () {
+    $('#consultasTable').DataTable();
+    var medicamentosTable = $('#medicamentosTable').DataTable();
+
+    var eventos = [];
+    var hoje = new Date().toISOString().split("T")[0]; // Obtém a data de hoje no formato YYYY-MM-DD
+    console.log(consultas)
+    consultas.forEach(consulta => {
+      console.log(consulta);
+      var dataHoraFormatada = new Date(consulta.data + "T" + consulta.hora);
+      eventos.push({
+        id: consulta._id,
+        title: "Consulta: " + consulta.medico,
+        start: dataHoraFormatada,
+        color: "#007bff", // Azul para consultas
+        extendedProps: {
+          tipo: "Consulta",
+          medico: consulta.medico,
+          data: consulta.data,
+          hora: consulta.hora,
+        }
+      });
+    });
+
+    medicamentos.forEach(medicamento => {
+      var dataHoraFormatada = new Date(hoje + "T" + medicamento.hora);
+      eventos.push({
+        id: medicamento._id,
+        title: "Medicamento: " + medicamento.nome,
+        start: dataHoraFormatada,
+        color: "#28a745", // Verde para medicamentos
+        extendedProps: {
+          tipo: "Medicamento",
+          nome: medicamento.nome,
+          data: hoje,
+          hora: medicamento.hora,
+          quantidade: medicamento.quantidade // Inclui a quantidade dos medicamentos
+        }
+      });
+    });
+
+    console.log(medicamentos)
+
+    // Inicializa o calendário
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: eventos,
+      eventClick: function (info) {
+        // Pega os detalhes do evento clicado
+        var evento = info.event;
+        var title = evento.title;
+        var data = evento.start.toISOString().split("T")[0];
+        var hora = evento.start.toTimeString().split(" ")[0];
+        var quantidade = evento.extendedProps.quantidade; // Verifica se há quantidade (Medicamentos)
+
+        // Preenche o modal com os dados do evento
+        document.getElementById("eventTitle").innerText = title;
+        document.getElementById("eventDate").innerText = data;
+        document.getElementById("eventTime").innerText = hora;
+        if (quantidade != null) {
+          document.getElementById("eventQuantity").innerText = quantidade;
+          document.getElementById("eventModalQuantity").style.display = "block";
+        } else {
+          document.getElementById("eventModalQuantity").style.display = "none";
+        }
+        // Exibe o modal
+        document.getElementById("eventModal").style.display = "block";
+        document.getElementById("modalBackground").style.display = "block";
+      }
+    });
+
+    calendar.render();
+
+    // Função para fechar o modal de edição
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    document.getElementById('addMedicamentoForm')?.addEventListener('submit', function (e) {
+              e.preventDefault();
+
+              const nome = document.getElementById('nome').value;
+              const hora = document.getElementById('hora').value;
+              const quantidade = document.getElementById('quantidade').value;
+
+              $.ajax({
+                url: '/add-medicamento',
+                method: 'POST',
+                data: { nome, hora, quantidade },
+                success: function (response) {
+                  if (response.success) {
+                    const medicamentosTable = $('#medicamentosTable').DataTable();
+                    medicamentosTable.row.add([
+                      response.medicamento.nome,
+                      response.medicamento.hora,
+                      response.medicamento.quantidade,
+                      `<button onclick="editarMedicamento('${response.medicamento._id}', '${response.medicamento.nome}', '${response.medicamento.hora}', '${response.medicamento.quantidade}')">Editar</button>
+                 <button onclick="excluirMedicamento('${response.medicamento._id}', '${response.medicamento.hora}', '${response.medicamento.nome}')">Excluir</button>`
+                    ]).draw();
+                    var dataHoraFormatada = new Date(hoje + "T" + response.medicamento.hora);
+                    calendar.addEvent({
+                      id: response.medicamento._id,
+                      title: "Medicamento: " + response.medicamento.nome,
+                      start: dataHoraFormatada,
+                      color: "#28a745",
+                      extendedProps: {
+                        tipo: "Medicamento",
+                        nome: response.medicamento.nome,
+                        hora: response.medicamento.hora,
+                        quantidade: response.medicamento.quantidade
+                      }
+                    });
+
+                    document.getElementById('addMedicamentoForm').reset();
+                  } else {
+                    alert('Erro ao adicionar medicamento.');
+                  }
+                },
+                error: function () {
+                  alert('Erro na comunicação com o servidor.');
+                }
+              });
+            });
+    
+    // Excluir medicamento e evento
+    window.excluirMedicamento = function (id, hora, nome) {
+      $.post(`/delete-medicamento/${id}`, function (response) {
+        if (response.success) {
+          medicamentosTable.row(`#medicamento-${id}`).remove().draw();
+          var evento = calendar.getEvents().find(evento => evento.title === "Medicamento: " + nome && evento.start.toTimeString().split(" ")[0] === hora);
+          console.log(evento)
+          if (evento) {
+            evento.remove();
+          }
+          alert("Medicamento excluído com sucesso!");
+        } else {
+          alert("Erro ao excluir o medicamento!");
+        }
+      }).fail(function () {
+        alert("Erro na comunicação com o servidor!");
+      });
+    };
+
+    function getTodayDate() {
+      let hoje = new Date();
+      let ano = hoje.getFullYear();
+      let mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      let dia = String(hoje.getDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    window.editarMedicamento = function (id, nome, hora, quantidade) {
+      var novoNome = prompt("Novo nome:", nome);
+      var novaHora = prompt("Nova hora (HH:MM):", hora);
+      var novaQuantidade = prompt("Nova quantidade:", quantidade);
+
+      if (novoNome && novaHora && novaQuantidade) {
+        $.ajax({
+          url: `/edit-medicamento/${id}`,
+          method: 'POST',
+          data: { nome: novoNome, hora: novaHora, quantidade: novaQuantidade },
+          success: function () {
+            var row = medicamentosTable.row(`#medicamento-${id}`);
+            row.data([novoNome, novaHora, novaQuantidade,
+              `<button onclick="editarMedicamento('${id}', '${novoNome}', '${novaHora}', '${novaQuantidade}')">Editar</button>
+         <button onclick="excluirMedicamento('${id}', '${novaHora}', '${novoNome}')">Excluir</button>`
+            ]).invalidate().draw();
+
+            // Find and remove the old event from the calendar
+            var eventoExistente = calendar.getEvents().find(function (event) {
+              return event.id === id; // Check by event ID
+            });
+
+            if (eventoExistente) {
+              eventoExistente.remove();
+            }
+
+            // Create and add the updated event to the calendar
+            var dataHoraFormatada = new Date(hoje + "T" + novaHora);
+            var novoEvento = {
+              id: id,
+              title: "Medicamento: " + novoNome,
+              start: dataHoraFormatada,
+              color: "#28a745", // Green for medication
+              extendedProps: {
+                tipo: "Medicamento",
+                nome: novoNome,
+                hora: novaHora,
+                quantidade: novaQuantidade
+              }
+            };
+            calendar.addEvent(novoEvento); // Add the updated event
+
+            alert("Medicamento atualizado com sucesso!");
+          },
+          error: function () {
+            alert("Erro ao atualizar o medicamento. Tente novamente.");
+          }
+        });
+      }
+    };
+
+  });
+</script>
+
+</html>
