@@ -336,26 +336,9 @@ exports.verifySubscription = async (req, res) => {
     const checkoutData = checkoutResponse.data;
     console.log('Checkout status:', checkoutData);
 
-    // 2. If checkout is successful, verify the subscription
-    if (checkoutData.payment?.status === 'success') {
-      // Try to get subscription details (may not exist yet in EasyPay's system)
-      try {
-        const subscriptionResponse = await axios.get(
-          `${EASYPAY_API_URL}/subscription/${checkoutId}`,
-          {
-            headers: {
-              'AccountId': ACCOUNT_ID,
-              'ApiKey': API_KEY
-            }
-          }
-        );
-
-        console.log('Subscription status:', subscriptionResponse.data);
-      } catch (subscriptionError) {
-        console.log('Subscription not yet available in EasyPay system, but checkout was successful');
-      }
-
-      // 3. Update our database regardless of subscription API response
+    // 2. For subscriptions, we consider it successful if payment is 'tokenized'
+    if (checkoutData.payment?.status === 'tokenized' || checkoutData.payment?.status === 'success') {
+      // 3. Update our database
       const subscription = await Subscription.findByIdAndUpdate(
         subscriptionId,
         {
@@ -382,7 +365,8 @@ exports.verifySubscription = async (req, res) => {
     // If checkout wasn't successful
     return res.status(400).json({
       success: false,
-      message: 'Checkout not yet completed'
+      message: 'Checkout not yet completed',
+      checkoutStatus: checkoutData.payment?.status
     });
 
   } catch (error) {
