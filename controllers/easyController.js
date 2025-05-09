@@ -201,11 +201,25 @@ exports.checkSubscriptionStatus = async (req, res) => {
                 // Update subscription
                 subscription.status = 'active';
                 subscription.paymentStatus = 'completed';
+                subscription.dataInicio = new Date();
+                
+                // Calculate end date based on plan duration
+                if (subscription.planoId.duracao === 'mensal') {
+                    subscription.dataFim = new Date(subscription.dataInicio);
+                    subscription.dataFim.setMonth(subscription.dataFim.getMonth() + 1);
+                } else if (subscription.planoId.duracao === 'trimestral') {
+                    subscription.dataFim = new Date(subscription.dataInicio);
+                    subscription.dataFim.setMonth(subscription.dataFim.getMonth() + 3);
+                } else if (subscription.planoId.duracao === 'anual') {
+                    subscription.dataFim = new Date(subscription.dataInicio);
+                    subscription.dataFim.setFullYear(subscription.dataFim.getFullYear() + 1);
+                }
+
                 await subscription.save();
 
                 // Update user level
                 await User.findByIdAndUpdate(subscription.userId, {
-                    sublevel: subscription.level,
+                    sublevel: subscription.planoId.level,
                     subscription: subscription._id
                 });
 
@@ -217,25 +231,6 @@ exports.checkSubscriptionStatus = async (req, res) => {
             }
         }
 
-        // Handle expired subscriptions
-        if (subscription.status === 'pending' && new Date() > subscription.dataFim) {
-            subscription.status = 'expired';
-            await subscription.save();
-            
-            // Reset user level if subscription expired
-            await User.findByIdAndUpdate(subscription.userId, {
-                sublevel: 'free',
-                subscription: null
-            });
-
-            return res.json({
-                success: true,
-                status: 'expired',
-                subscription
-            });
-        }
-
-        // Default return
         res.json({
             success: true,
             status: subscription.status || 'pending',
