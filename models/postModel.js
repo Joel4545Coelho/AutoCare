@@ -15,6 +15,17 @@ const postSchema = new mongoose.Schema({
       message: 'All tags must be non-empty strings'
     }
   },
+  upvotes: { 
+    type: [mongoose.Schema.Types.ObjectId], 
+    ref: 'user',
+    default: [] 
+  },
+  downvotes: { 
+    type: [mongoose.Schema.Types.ObjectId], 
+    ref: 'user',
+    default: [] 
+  },
+  score: { type: Number, default: 0 }, // Calculated field: upvotes.length - downvotes.length
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
 }, { 
   timestamps: true,
@@ -22,14 +33,17 @@ const postSchema = new mongoose.Schema({
   toObject: { virtuals: true } 
 });
 
+// Calculate score before saving
 postSchema.pre('save', function(next) {
   if (!Array.isArray(this.tags)) {
     this.tags = [];
   }
-  // Trim and filter out empty tags
   this.tags = this.tags
     .map(tag => typeof tag === 'string' ? tag.trim() : '')
     .filter(tag => tag.length > 0);
+  
+  // Calculate score
+  this.score = this.upvotes.length - this.downvotes.length;
   next();
 });
 

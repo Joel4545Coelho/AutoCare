@@ -17,4 +17,12 @@ router.delete('/forum/post/:postId', auth, deletePost);
 router.delete('/forum/comment/:commentId', auth, deleteComment);
 router.delete('/forum/reply/:replyId', auth, deleteReply);
 
+// Voting routes
+router.post('/forum/post/:postId/upvote', auth, upvotePost);
+router.post('/forum/post/:postId/downvote', auth, downvotePost);
+router.post('/forum/post/:postId/removevote', auth, removePostVote);
+router.post('/forum/comment/:commentId/upvote', auth, upvoteComment);
+router.post('/forum/comment/:commentId/downvote', auth, downvoteComment);
+router.post('/forum/comment/:commentId/removevote', auth, removeCommentVote);
+
 module.exports = router;

@@ -4,13 +4,12 @@ const user = require('../models/user');
 
 const listPosts = async (req, res) => {
   const currentUser = res.locals.user;
-  console.log(currentUser)
   if (!currentUser) {
     return res.status(401).json({ error: "Unauthorized: User not authenticated" });
   }
 
   try {
-    const { tags } = req.query;
+    const { tags, sort } = req.query;
     let query = {};
 
     if (tags) {
@@ -18,8 +17,23 @@ const listPosts = async (req, res) => {
       query = { tags: { $in: tagArray } };
     }
 
+    let sortOption = { createdAt: -1 }; // Default: newest first
+    if (sort === 'top') {
+      sortOption = { score: -1, createdAt: -1 }; // Highest score first, then newest
+    } else if (sort === 'hot') {
+      sortOption = { 
+        $add: [
+          { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
+          { $divide: [
+            { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
+            { $add: [1, { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 1000 * 60 * 60] }] }
+          ] }
+        ]
+      };
+    }
+
     const posts = await Post.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .populate('author', 'username type avatar')
       .populate({
         path: 'comments',
@@ -35,8 +49,6 @@ const listPosts = async (req, res) => {
       tags: post.tags || []
     }));
     res.status(200).json({ success: true, posts: postsWithTags });
-
-    res.status(200).json({ success: true, posts });
   } catch (err) {
     console.error('Error fetching posts:', err);
     res.status(500).json({ success: false, message: 'Error fetching posts' });
@@ -132,7 +144,7 @@ const editPost = async (req, res) => {
   try {
     const { postId } = req.params;
     const currentUser = res.locals.user;
-    
+
     // Handle tags the same way as createPost
     let tags = [];
     if (req.body.tags) {
@@ -156,7 +168,7 @@ const editPost = async (req, res) => {
     // Update tags explicitly
     post.tags = tags;
     post.title = req.body.title || post.title;
-    post.content = req.body.content || post.content;s
+    post.content = req.body.content || post.content; s
 
     if (req.file) {
       post.image = req.file.path;
@@ -409,4 +421,161 @@ const deleteReply = async (req, res) => {
   }
 };
 
-module.exports = { listPosts, createPost, createComment, createReply, editPost, editComment, editReply, deletePost, deleteComment, deleteReply, listPostsN };
+// Upvote a post
+const upvotePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = res.locals.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Check if user already upvoted
+    if (post.upvotes.includes(userId)) {
+      return res.status(400).json({ success: false, message: 'You already upvoted this post' });
+    }
+
+    // Remove from downvotes if exists
+    post.downvotes = post.downvotes.filter(id => !id.equals(userId));
+
+    // Add to upvotes
+    post.upvotes.push(userId);
+    post.score = post.upvotes.length - post.downvotes.length;
+    await post.save();
+
+    res.json({ success: true, post });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error upvoting post', error: err.message });
+  }
+};
+
+// Downvote a post
+const downvotePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = res.locals.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Check if user already downvoted
+    if (post.downvotes.includes(userId)) {
+      return res.status(400).json({ success: false, message: 'You already downvoted this post' });
+    }
+
+    // Remove from upvotes if exists
+    post.upvotes = post.upvotes.filter(id => !id.equals(userId));
+
+    // Add to downvotes
+    post.downvotes.push(userId);
+    post.score = post.upvotes.length - post.downvotes.length;
+    await post.save();
+
+    res.json({ success: true, post });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error downvoting post', error: err.message });
+  }
+};
+
+// Remove vote from post
+const removePostVote = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = res.locals.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Remove from both upvotes and downvotes
+    post.upvotes = post.upvotes.filter(id => !id.equals(userId));
+    post.downvotes = post.downvotes.filter(id => !id.equals(userId));
+    post.score = post.upvotes.length - post.downvotes.length;
+    await post.save();
+
+    res.json({ success: true, post });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error removing vote', error: err.message });
+  }
+};
+
+// Upvote a comment
+const upvoteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = res.locals.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    if (comment.upvotes.includes(userId)) {
+      return res.status(400).json({ success: false, message: 'You already upvoted this comment' });
+    }
+
+    comment.downvotes = comment.downvotes.filter(id => !id.equals(userId));
+    comment.upvotes.push(userId);
+    comment.score = comment.upvotes.length - comment.downvotes.length;
+    await comment.save();
+
+    res.json({ success: true, comment });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error upvoting comment', error: err.message });
+  }
+};
+
+// Downvote a comment
+const downvoteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = res.locals.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    if (comment.downvotes.includes(userId)) {
+      return res.status(400).json({ success: false, message: 'You already downvoted this comment' });
+    }
+
+    comment.upvotes = comment.upvotes.filter(id => !id.equals(userId));
+    comment.downvotes.push(userId);
+    comment.score = comment.upvotes.length - comment.downvotes.length;
+    await comment.save();
+
+    res.json({ success: true, comment });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error downvoting comment', error: err.message });
+  }
+};
+
+// Remove vote from comment
+const removeCommentVote = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = res.locals.user._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    comment.upvotes = comment.upvotes.filter(id => !id.equals(userId));
+    comment.downvotes = comment.downvotes.filter(id => !id.equals(userId));
+    comment.score = comment.upvotes.length - comment.downvotes.length;
+    await comment.save();
+
+    res.json({ success: true, comment });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error removing vote', error: err.message });
+  }
+};
+
+module.exports = { listPosts, createPost, createComment, createReply, editPost, editComment, editReply, deletePost, deleteComment, deleteReply, listPostsN, upvotePost, downvotePost, removePostVote, upvoteComment, downvoteComment, removeCommentVote };
