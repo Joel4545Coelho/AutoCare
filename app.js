@@ -29,13 +29,10 @@ const receitas_medico = require('./routes/receitas_medico')
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
 const server = http.createServer(app);
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","http://10.1.3.14:8100","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -44,7 +41,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"http://10.1.3.14:8100","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -162,6 +159,9 @@ io.on("connection", (socket) => {
       console.error("Error marking message as deleted:", error);
     }
   });  
+});
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 server.listen(PORT, () => {
