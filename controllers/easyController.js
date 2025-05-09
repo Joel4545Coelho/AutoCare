@@ -318,6 +318,62 @@ exports.cancelPendingSubscription = async (req, res) => {
     }
 };
 
+exports.verifySubscription = async (req, res) => {
+  const { subscriptionId, checkoutId } = req.body;
+
+  try {
+    // 1. Verify the subscription with EasyPay
+    const subscriptionResponse = await axios.get(
+      `${EASYPAY_API_URL}/subscription/${checkoutId}`,
+      {
+        headers: {
+          'AccountId': ACCOUNT_ID,
+          'ApiKey': API_KEY
+        }
+      }
+    );
+
+    // 2. Check if subscription is active
+    if (subscriptionResponse.data.status !== 'active') {
+      return res.json({ 
+        success: false,
+        message: 'Subscription is not active yet'
+      });
+    }
+
+    // 3. Update our database
+    const subscription = await Subscription.findByIdAndUpdate(
+      subscriptionId,
+      {
+        status: 'active',
+        paymentStatus: 'completed',
+        dataInicio: new Date(),
+        easypaySubscriptionId: checkoutId
+      },
+      { new: true }
+    ).populate('planoId');
+
+    // 4. Update user
+    await User.findByIdAndUpdate(subscription.userId, {
+      sublevel: subscription.planoId.level,
+      subscription: subscription._id
+    });
+
+    res.json({
+      success: true,
+      subscription
+    });
+
+  } catch (error) {
+    console.error('Error verifying subscription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying subscription',
+      error: error.response?.data || error.message
+    });
+  }
+};
+
 function getFrequency(duracao) {
     const map = {
         'mensal': '1M',
