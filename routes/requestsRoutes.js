@@ -45,6 +45,6 @@ router.get('/medicConsultas', auth, getMedicConsultas);
 // Single payment routes
 router.post('/consulta/payment', auth, createConsultaPayment);
 router.get('/consulta/payment/:paymentId', auth, verifyConsultaPayment);
-router.get('/payment/callback', handlePaymentCallback); // This one doesn't need auth as it's called by EasyPay
-
+router.get('/payment/callback', handlePaymentCallback); 
+router.post('/consulta/verify-payment', easysinglecontroller.verifyPayment);
 module.exports = router;

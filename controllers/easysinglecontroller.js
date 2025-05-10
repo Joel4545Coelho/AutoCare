@@ -27,21 +27,15 @@ exports.createConsultaPayment = async (req, res) => {
             });
         }
 
-        // Get medico's consulta price
+        // Get medico's consulta price or use default
         const medico = await User.findById(consulta.medicoId._id);
-        const consultaPrice = medico.pconsulta || 80;
+        const consultaPrice = medico.pconsulta || 80; // Default price if not set
 
-        console.log(`Creating payment for consulta ${consultaId} with price ${consultaPrice}`);
-
-        // Update consulta with the actual price
-        consulta.price = consultaPrice;
-        await consulta.save();
-
-        // Create EasyPay Checkout payload (CC only)
+        // Create EasyPay Checkout payload
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"],
+                methods: ["cc", "mbw"], // Credit card and MBWay
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
@@ -77,14 +71,15 @@ exports.createConsultaPayment = async (req, res) => {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 10000 // 10 second timeout
         });
 
         // Update consulta with payment ID
         consulta.paymentId = response.data.id;
+        consulta.price = consultaPrice;
         await consulta.save();
 
-        // Return a single response
         res.status(201).json({
             success: true,
             id: response.data.id,
@@ -94,10 +89,8 @@ exports.createConsultaPayment = async (req, res) => {
             consultaId: consulta._id
         });
 
-        console.log('EasyPay response:', response.data);
-
     } catch (error) {
-        console.error('Error creating consulta payment:', error.response?.data || error.message);
+        console.error('Error creating consulta payment:', error);
         res.status(500).json({
             success: false,
             message: 'Error creating payment',
@@ -193,5 +186,60 @@ exports.handlePaymentCallback = async (req, res) => {
     } catch (error) {
         console.error('Error handling payment callback:', error);
         return res.redirect('/payment/error');
+    }
+};
+
+exports.verifyPayment = async (req, res) => {
+    const { paymentId, consultaId } = req.body;
+
+    try {
+        // First verify with EasyPay
+        const paymentResponse = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
+            headers: {
+                'AccountId': ACCOUNT_ID,
+                'ApiKey': API_KEY
+            }
+        });
+
+        if (paymentResponse.data.payment?.status !== 'success') {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment not completed'
+            });
+        }
+
+        // Then update our database
+        const updatedConsulta = await Consultas.findOneAndUpdate(
+            { 
+                _id: consultaId,
+                paymentId: paymentId,
+                status: 'pending_payment'
+            },
+            {
+                status: 'scheduled',
+                paymentStatus: 'completed'
+            },
+            { new: true }
+        );
+
+        if (!updatedConsulta) {
+            return res.status(404).json({
+                success: false,
+                message: 'Consulta not found or already paid'
+            });
+        }
+
+        res.json({
+            success: true,
+            consulta: updatedConsulta
+        });
+
+    } catch (error) {
+        console.error('Error verifying payment:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error verifying payment',
+            error: error.message
+        });
     }
 };
