@@ -21,9 +21,9 @@ exports.createConsultaPayment = async (req, res) => {
         }).populate('medicoId');
 
         if (!consulta) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Consulta not found or already paid' 
+            return res.status(404).json({
+                success: false,
+                message: 'Consulta not found or already paid'
             });
         }
 
@@ -42,14 +42,14 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"], // Only credit card
+                methods: ["cc"],
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
                     transaction_key: `consulta-${consultaId}`
                 },
                 currency: "EUR",
-                value: consultaPrice.toFixed(2), // Ensure 2 decimal places
+                value: parseFloat(consultaPrice.toFixed(2)), // Ensure numeric value
                 customer: {
                     email: currentUser.email,
                     name: currentUser.username,
@@ -65,10 +65,10 @@ exports.createConsultaPayment = async (req, res) => {
                     description: `Medical consultation with ${medico.username}`,
                     quantity: 1,
                     key: `consulta-${consultaId}`,
-                    value: consultaPrice.toFixed(2)
+                    value: parseFloat(consultaPrice.toFixed(2)) // Ensure numeric value
                 }],
                 key: `consulta-${consultaId}`,
-                value: consultaPrice.toFixed(2)
+                value: parseFloat(consultaPrice.toFixed(2)) // Ensure numeric value
             }
         };
 
@@ -102,7 +102,7 @@ exports.createConsultaPayment = async (req, res) => {
     } catch (error) {
         // Enhanced error logging
         console.error('Error creating consulta payment:', error.response?.data || error.message);
-        
+
         res.status(500).json({
             success: false,
             message: 'Error creating payment',
@@ -129,12 +129,12 @@ exports.verifyConsultaPayment = async (req, res) => {
         if (paymentData.payment?.status === 'success') {
             await Consultas.findOneAndUpdate(
                 { paymentId: paymentId },
-                { 
+                {
                     status: 'scheduled',
                     paymentStatus: 'completed'
                 }
             );
-            
+
             return res.json({
                 success: true,
                 status: 'completed',
@@ -165,9 +165,9 @@ exports.handlePaymentCallback = async (req, res) => {
         const consulta = await Consultas.findOne({ paymentId });
 
         if (!consulta) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Consulta not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Consulta not found'
             });
         }
 
