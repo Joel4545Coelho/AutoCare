@@ -39,7 +39,7 @@ const listPosts = async (req, res) => {
         path: 'comments',
         populate: [
           { path: 'author', select: 'username type avatar' },
-          { path: 'replies', populate: { path: 'author', select: 'username type' } },
+          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
         ],
       })
       .lean();
@@ -70,7 +70,7 @@ const listPostsN = async (req, res) => {
         path: 'comments',
         populate: [
           { path: 'author', select: 'username type avatar' },
-          { path: 'replies', populate: { path: 'author', select: 'username type' } },
+          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
         ],
       });
 
