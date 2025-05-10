@@ -16,7 +16,7 @@ const {
     createConsultaPayment, 
     verifyConsultaPayment,
     handlePaymentCallback
-} = require("../controllers/singlePaymentController");
+} = require("../controllers/singlepaycontroller");
 
 
 router.get("/currentUser", auth, getCurrentUser);
