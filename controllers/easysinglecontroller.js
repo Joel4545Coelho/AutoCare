@@ -42,14 +42,14 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"],
+                methods: ["cc"], // Credit card only
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
                     transaction_key: `consulta-${consultaId}`
                 },
                 currency: "EUR",
-                value: parseFloat(consultaPrice.toFixed(2)), // Ensure numeric value
+                value: parseFloat(consultaPrice.toFixed(2)),
                 customer: {
                     email: currentUser.email,
                     name: currentUser.username,
@@ -65,15 +65,12 @@ exports.createConsultaPayment = async (req, res) => {
                     description: `Medical consultation with ${medico.username}`,
                     quantity: 1,
                     key: `consulta-${consultaId}`,
-                    value: parseFloat(consultaPrice.toFixed(2)) // Ensure numeric value
+                    value: parseFloat(consultaPrice.toFixed(2))
                 }],
                 key: `consulta-${consultaId}`,
-                value: parseFloat(consultaPrice.toFixed(2)) // Ensure numeric value
+                value: parseFloat(consultaPrice.toFixed(2))
             }
         };
-
-        // Debug: Log the payload being sent
-        console.log('Sending payload to EasyPay:', JSON.stringify(checkoutPayload, null, 2));
 
         // Create EasyPay Checkout
         const response = await axios.post(CHECKOUT_URL, checkoutPayload, {
@@ -82,6 +79,14 @@ exports.createConsultaPayment = async (req, res) => {
                 'ApiKey': API_KEY,
                 'Content-Type': 'application/json'
             }
+        });
+
+        // Return the full manifest including id and session
+        res.status(201).json({
+            success: true,
+            id: response.data.id,
+            session: response.data.session,
+            config: response.data.config || null
         });
 
         // Debug: Log the full response
