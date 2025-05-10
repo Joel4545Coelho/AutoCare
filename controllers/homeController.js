@@ -72,7 +72,7 @@ const getHomeData = async (req, res) => {
   }
 };
 
-// Função para adicionar um medicamento
+
 const addMedicamento = async (req, res) => {
   console.log(req.body);
 

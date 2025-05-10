@@ -43,7 +43,8 @@ const login = async (req, res) => {
         var email = req.body.email;
         var password = req.body.password;
         var user = await User.findOne({ email: email });
-        console.log(email + "    " + password)
+        console.log(email + "    " + password);
+        console.log("useeer"+user);
         if (!user) {
             return res.status(400).send({ message: "Usuário não encontrado" });
         }
@@ -69,7 +70,8 @@ const login = async (req, res) => {
                 email: user.email,
                 type: user.type,
                 doenca: user.doenca || [],
-                token: token
+                token: token,
+                avatar:user.avatar
             });
         } else {
             return res.status(400).send({ message: "Usuário ou senha inválidos" });

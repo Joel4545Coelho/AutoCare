@@ -10,7 +10,8 @@ const newsSchema = new mongoose.Schema({
         required: true
     },
     image: { 
-        type: String },
+        type: String 
+    },
     organization_id: {
         type: mongoose.Schema.Types.ObjectId,ref: 'user',  required: true
     },

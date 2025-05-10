@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -5,6 +6,9 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const path = require("path");
+
+const app = express();
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const authRoutes = require("./routes/authRoutes");
 const chatRoutes = require("./routes/chatRoutes");
@@ -19,14 +23,17 @@ const forumRoutes = require("./routes/forumRoutes");
 const homeRoutes = require("./routes/homeRoutes");
 const profileroutes = require('./routes/profileroutes');
 const subroutes = require('./routes/subscriptionRoutes');
+const receitasP = require('./routes/receitasPaciente');
+const receitas_medico = require('./routes/receitas_medico')
 
-const app = express();
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
 const server = http.createServer(app);
+
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com"],
-    methods: ["GET", "POST"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
 });
@@ -34,7 +41,8 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com'],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
 );
@@ -70,7 +78,9 @@ app.use("/perguntas", perguntasRoutes);
 app.use(medicoRoutes);
 app.use(homeRoutes);
 app.use(profileroutes);
+app.use(receitasP);
 app.use('/assinaturas', subroutes);
+app.use(receitas_medico)
 app.get("/pacientes", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -92,7 +102,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ senderId, receiverId, message }) => {
+  socket.on("sendMessage", async ({ senderId, receiverId, message,type}) => {
     const roomId = [senderId, receiverId].sort().join("_");
 
     const newMessage = new Message({
@@ -100,6 +110,7 @@ io.on("connection", (socket) => {
       senderId,
       receiverId,
       content: message,
+      type:type,
       seen: false,
     });
 
@@ -111,6 +122,7 @@ io.on("connection", (socket) => {
       receiverId,
       content: message,
       createdAt: newMessage.createdAt,
+      type:type,
       room:roomId
     });
   });
@@ -147,6 +159,9 @@ io.on("connection", (socket) => {
       console.error("Error marking message as deleted:", error);
     }
   });  
+});
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 server.listen(PORT, () => {

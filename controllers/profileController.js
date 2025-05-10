@@ -19,21 +19,8 @@ exports.updateAvatar = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Defina o diretório de upload para salvar a imagem
-    const uploadDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir); // Cria o diretório de uploads se não existir
-    }
-
-    // Crie o nome do arquivo (com base no nome original ou gerado)
-    const fileName = `${Date.now()}-${req.file.originalname}`;
-    const filePath = path.join(uploadDir, fileName);
-
-    // Mova o arquivo para o diretório de uploads
-    fs.renameSync(req.file.path, filePath);
-
     // A URL do avatar que será salva no banco de dados
-    const photoUrl = `/uploads/${fileName}`;
+    const photoUrl = req.file.location;
 
     // Atualize o campo avatar do usuário com a URL da imagem
     user.avatar = photoUrl;

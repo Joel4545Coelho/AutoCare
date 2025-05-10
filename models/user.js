@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
     required: true,
     enum: ["paciente", "admin", "medico", "organizacao"],
   },
-  avatar: { type: Buffer,required: false},
+  avatar: { type: String,required: false},
   doenca: { type: Array },
   pacientes_associados: [{ type: mongoose.Schema.Types.ObjectId }],
   medicos_associados: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }], // Use "user" instead of "User"

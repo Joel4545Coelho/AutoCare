@@ -30,12 +30,12 @@ const inserir = async (req, res) => {
 
   try {
     const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null;
+    console.log("file info" + req.file.location)
 
     const noticia = await news.create({
       title,
       content,
-      image,
+      image: req.file.location,
       organization_id: currentUserId,
     });
 
@@ -81,7 +81,8 @@ const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
-    const image = req.file ? req.file.filename : null;
+
+    const image = req.file?.location || null; // Safe optional chaining
 
     const updates = { title, content };
     if (image) {
@@ -99,6 +100,7 @@ const update = async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar notícia' });
   }
 };
+
 const getById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -116,4 +118,4 @@ const getById = async (req, res) => {
 };
 
 
-module.exports = { index, inserir, deletee, update, indexN, getById  };
+module.exports = { index, inserir, deletee, update, indexN, getById };

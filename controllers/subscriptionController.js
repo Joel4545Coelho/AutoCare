@@ -12,7 +12,8 @@ exports.getPlanos = async (req, res) => {
             preco: 1,
             duracao: '$duracao',
             beneficios: 1,
-            ativo: 1
+            ativo: 1,
+            level:'level'
           }
         }
       ]);
@@ -51,9 +52,6 @@ exports.assinarPlano = async (req, res) => {
   const currentUser = res.locals.user;
   const { planoId } = req.body;
 
-  if (currentUser.type !== 'paciente') {
-    return res.status(403).json({ success: false, message: 'Apenas pacientes podem assinar planos' });
-  }
 
   try {
     // Check if user already has an active subscription
@@ -168,7 +166,7 @@ exports.initiatePayment = async (req, res) => {
 
     res.json({ 
       success: true,
-      redirectTo: `/payment/confirmation?success=true&assinaturaId=${assinatura._id}`
+      redirectTo: `/payment/confirmation?success=true`
     });
   } catch (error) {
     console.error('Erro ao processar pagamento:', error);
