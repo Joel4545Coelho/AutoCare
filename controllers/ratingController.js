@@ -53,14 +53,17 @@ export const submitDoctorRating = async (req, res) => {
     
     if (existingRating) {
       existingRating.rating = Number(rating);
-      existingRating.comment = comment || existingRating.comment;
+      // Lógica atualizada para lidar com comentários vazios ou ausentes
+      if (comment !== undefined) {
+        existingRating.comment = comment === '' ? null : comment;
+      }
       ratingResult = await existingRating.save();
     } else {
       ratingResult = await DoctorRating.create({
         doctorId: doctor._id,
         userId: currentUser._id,
         rating: Number(rating),
-        comment: comment || undefined,
+        comment: comment === '' ? null : comment,
       });
     }
 
@@ -106,18 +109,6 @@ export const submitDoctorRating = async (req, res) => {
     });
   }
 };
-
-export const fetchDoctorRating = async (req, res) => {
-  const { doctorId } = req.params;
-
-  try {
-    const result = await DoctorRating.getAverageRating(doctorId);
-    res.json({ data: result });
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao buscar avaliações.' });
-  }
-};
-
 export const fetchDoctorRatingsWithComments = async (req, res) => {
   const { doctorId } = req.params;
   const { limit = 10, skip = 0 } = req.query;

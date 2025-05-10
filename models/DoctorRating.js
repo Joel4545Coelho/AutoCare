@@ -26,11 +26,11 @@ const doctorRatingSchema = new mongoose.Schema({
   },
   comment: {
     type: String,
-    required: true,
+    required: false, // Alterado para false para permitir comentário vazio ou ausente
     maxlength: 500,
     trim: true,
+    default: null, // Adicionado valor padrão
   },
-  
   createdAt: {
     type: Date,
     default: Date.now,
