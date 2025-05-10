@@ -29,9 +29,8 @@ exports.createConsultaPayment = async (req, res) => {
 
         // Get medico's consulta price
         const medico = await User.findById(consulta.medicoId._id);
-        const consultaPrice = medico.pconsulta || 80; // Default to 50 if not set
+        const consultaPrice = medico.pconsulta || 80;
 
-        // Debug: Log the price being used
         console.log(`Creating payment for consulta ${consultaId} with price ${consultaPrice}`);
 
         // Update consulta with the actual price
@@ -42,7 +41,7 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"], // Credit card only
+                methods: ["cc"],
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
@@ -85,34 +84,20 @@ exports.createConsultaPayment = async (req, res) => {
         consulta.paymentId = response.data.id;
         await consulta.save();
 
-        // Return the full manifest including id and session
+        // Return a single response
         res.status(201).json({
             success: true,
             id: response.data.id,
             session: response.data.session,
             config: response.data.config || null,
-            paymentId: response.data.id, // Add this if needed by frontend
-            consultaId: consulta._id     // Add this if needed by frontend
-        });
-
-        // Debug: Log the full response
-        console.log('EasyPay response:', response.data);
-
-        // Update consulta with payment ID
-        consulta.paymentId = response.data.id;
-        await consulta.save();
-
-        res.status(201).json({
-            success: true,
             paymentId: response.data.id,
-            session: response.data.session, // Send the session token to frontend
             consultaId: consulta._id
         });
 
-    } catch (error) {
-        // Enhanced error logging
-        console.error('Error creating consulta payment:', error.response?.data || error.message);
+        console.log('EasyPay response:', response.data);
 
+    } catch (error) {
+        console.error('Error creating consulta payment:', error.response?.data || error.message);
         res.status(500).json({
             success: false,
             message: 'Error creating payment',
