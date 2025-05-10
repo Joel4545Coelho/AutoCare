@@ -29,7 +29,7 @@ exports.createConsultaPayment = async (req, res) => {
 
         // Get medico's consulta price
         const medico = await User.findById(consulta.medicoId._id);
-        const consultaPrice = medico.pconsulta || 50; // Default to 50 if not set
+        const consultaPrice = medico.pconsulta || 80; // Default to 50 if not set
 
         // Debug: Log the price being used
         console.log(`Creating payment for consulta ${consultaId} with price ${consultaPrice}`);
@@ -94,8 +94,7 @@ exports.createConsultaPayment = async (req, res) => {
         res.status(201).json({
             success: true,
             paymentId: response.data.id,
-            checkoutId: response.data.id,
-            url: response.data.method?.url, // This will be the CC payment page URL
+            session: response.data.session, // Send the session token to frontend
             consultaId: consulta._id
         });
 
