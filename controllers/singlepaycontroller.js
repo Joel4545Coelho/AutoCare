@@ -4,6 +4,7 @@ const User = require('../models/user');
 
 const EASYPAY_API_URL = 'https://api.test.easypay.pt/2.0';
 const SINGLE_PAYMENT_URL = `${EASYPAY_API_URL}/single`;
+const CHECKOUT_URL = `${EASYPAY_API_URL}/checkout`;
 const ACCOUNT_ID = process.env.EASYPAY_ACCOUNT_ID;
 const API_KEY = process.env.EASYPAY_API_KEY;
 
@@ -34,27 +35,42 @@ exports.createConsultaPayment = async (req, res) => {
         consulta.price = consultaPrice;
         await consulta.save();
 
-        // Create EasyPay single payment payload
-        const paymentPayload = {
-            customer: {
-                name: currentUser.username,
-                email: currentUser.email,
-                phone: currentUser.phone || '911234567',
-                phone_indicative: "+351",
-                key: currentUser._id.toString(),
-                language: "PT"
+        // Create EasyPay Checkout payload (CC only)
+        const checkoutPayload = {
+            type: ["single"],
+            payment: {
+                methods: ["cc"], // Only credit card
+                type: "sale",
+                capture: {
+                    descriptive: `Consulta with ${medico.username}`,
+                    transaction_key: `consulta-${consultaId}`
+                },
+                currency: "EUR",
+                value: consultaPrice,
+                customer: {
+                    email: currentUser.email,
+                    name: currentUser.username,
+                    phone: currentUser.phone || '911234567',
+                    phone_indicative: "+351",
+                    fiscal_number: currentUser.fiscalNumber || "PT123456789",
+                    key: currentUser._id.toString(),
+                    language: "PT"
+                }
             },
-            key: `consulta-${consultaId}`,
-            value: consultaPrice,
-            method: "mb", // Can be "mb", "mbw", "cc", etc.
-            capture: {
-                descriptive: `Consulta with ${medico.username}`,
-                transaction_key: `consulta-${consultaId}`
+            order: {
+                items: [{
+                    description: `Medical consultation with ${medico.username}`,
+                    quantity: 1,
+                    key: `consulta-${consultaId}`,
+                    value: consultaPrice
+                }],
+                key: `consulta-${consultaId}`,
+                value: consultaPrice
             }
         };
 
-        // Create EasyPay single payment
-        const response = await axios.post(SINGLE_PAYMENT_URL, paymentPayload, {
+        // Create EasyPay Checkout
+        const response = await axios.post(CHECKOUT_URL, checkoutPayload, {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY,
@@ -69,7 +85,8 @@ exports.createConsultaPayment = async (req, res) => {
         res.status(201).json({
             success: true,
             paymentId: response.data.id,
-            method: response.data.method,
+            checkoutId: response.data.id,
+            url: response.data.method?.url, // This will be the CC payment page URL
             consultaId: consulta._id
         });
 
@@ -88,7 +105,7 @@ exports.verifyConsultaPayment = async (req, res) => {
 
     try {
         // Check payment status with EasyPay
-        const response = await axios.get(`${SINGLE_PAYMENT_URL}/${paymentId}`, {
+        const response = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
             headers: {
                 'AccountId': ACCOUNT_ID,
                 'ApiKey': API_KEY
@@ -98,7 +115,7 @@ exports.verifyConsultaPayment = async (req, res) => {
         const paymentData = response.data;
 
         // Update consulta status based on payment status
-        if (paymentData.method.status === 'success') {
+        if (paymentData.payment?.status === 'success') {
             await Consultas.findOneAndUpdate(
                 { paymentId: paymentId },
                 { 
@@ -116,7 +133,7 @@ exports.verifyConsultaPayment = async (req, res) => {
 
         res.json({
             success: true,
-            status: paymentData.method.status || 'pending',
+            status: paymentData.payment?.status || 'pending',
             payment: paymentData
         });
 
