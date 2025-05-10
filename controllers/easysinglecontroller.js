@@ -35,7 +35,7 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc", "mbw"], // Credit card and MBWay
+                methods: ["cc"],
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
@@ -210,7 +210,7 @@ exports.verifyPayment = async (req, res) => {
 
         // Then update our database
         const updatedConsulta = await Consultas.findOneAndUpdate(
-            { 
+            {
                 _id: consultaId,
                 paymentId: paymentId,
                 status: 'pending_payment'
