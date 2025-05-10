@@ -12,6 +12,13 @@ const { listMedics, sendMessageRequest, listMessageRequests,
 } = require("../controllers/mrequestController");
 const upload = require("../middlewares/multer"); // Import Multer middleware
 
+const { 
+    createConsultaPayment, 
+    verifyConsultaPayment,
+    handlePaymentCallback
+} = require("../controllers/singlePaymentController");
+
+
 router.get("/currentUser", auth, getCurrentUser);
 // Routes for message requests
 router.get("/medics", auth, listMedics); // List all medics
@@ -34,5 +41,10 @@ router.post('/initiatePayment', auth, initiatePayment);
 router.get('/payment/callback', auth, paymentCallback);
 router.get('/checkConsultaUpdates', auth, checkConsultaUpdates);
 router.get('/medicConsultas', auth, getMedicConsultas);
+
+// Single payment routes
+router.post('/consulta/payment', auth, createConsultaPayment);
+router.get('/consulta/payment/:paymentId', auth, verifyConsultaPayment);
+router.get('/payment/callback', handlePaymentCallback); // This one doesn't need auth as it's called by EasyPay
 
 module.exports = router;
