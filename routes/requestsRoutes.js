@@ -15,7 +15,8 @@ const upload = require("../middlewares/multer"); // Import Multer middleware
 const { 
     createConsultaPayment, 
     verifyConsultaPayment,
-    handlePaymentCallback
+    handlePaymentCallback,
+    verifyPayment
 } = require("../controllers/easysinglecontroller");
 
 
@@ -46,5 +47,5 @@ router.get('/medicConsultas', auth, getMedicConsultas);
 router.post('/consulta/payment', auth, createConsultaPayment);
 router.get('/consulta/payment/:paymentId', auth, verifyConsultaPayment);
 router.get('/payment/callback', handlePaymentCallback); 
-router.post('/consulta/verify-payment', easysinglecontroller.verifyPayment);
+router.post('/consulta/verify-payment', verifyPayment);
 module.exports = router;
