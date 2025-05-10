@@ -39,4 +39,22 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-module.exports = verifyToken;
+// In your auth middleware or user session logic
+const checkSubscriptionStatus = async (userId) => {
+  const subscription = await Subscription.findOne({ userId });
+  if (!subscription?.easypayId) return;
+
+  const response = await axios.get(
+    `https://api.prod.easypay.pt/2.0/subscription/${subscription.easypayId}`,
+    { headers: { AccountId: ACCOUNT_ID, ApiKey: API_KEY } }
+  );
+
+  if (response.data.status === 'active') {
+    await Subscription.updateOne(
+      { _id: subscription._id },
+      { status: 'active', paymentStatus: 'completed' }
+    );
+  }
+};
+
+module.exports = verifyToken,checkSubscriptionStatus;

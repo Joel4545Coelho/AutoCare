@@ -119,11 +119,24 @@ const SignInSub = async (req, res) => {
 };
 
 const getinfo = async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-    const currentUser = res.locals.user;
-    const type = currentUser.type;
-    console.log("type " + type)
-    res.json({ type: type });
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const currentUser = res.locals.user;
+        
+        // Return full user info
+        res.json({ 
+            _id: currentUser._id,
+            username: currentUser.username,
+            email: currentUser.email,
+            type: currentUser.type,
+            sublevel: currentUser.sublevel || 'free',
+            subscription: currentUser.subscription || null,
+            doenca: currentUser.doenca || []
+        });
+    } catch (error) {
+        console.error("Error getting user info:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
 
 module.exports = { index, login, logout, SignIn, SignInSub, teste, teste1, getinfo };

@@ -12,6 +12,5 @@ router.get("/SignUp", SignIn);
 router.post("/SignIn_submit", SignInSub);
 router.get("/chats", auth , teste);
 router.get("/inquerito", auth , teste1);
-
 module.exports = router;
 
