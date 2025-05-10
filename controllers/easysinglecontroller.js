@@ -81,12 +81,18 @@ exports.createConsultaPayment = async (req, res) => {
             }
         });
 
+        // Update consulta with payment ID
+        consulta.paymentId = response.data.id;
+        await consulta.save();
+
         // Return the full manifest including id and session
         res.status(201).json({
             success: true,
             id: response.data.id,
             session: response.data.session,
-            config: response.data.config || null
+            config: response.data.config || null,
+            paymentId: response.data.id, // Add this if needed by frontend
+            consultaId: consulta._id     // Add this if needed by frontend
         });
 
         // Debug: Log the full response
