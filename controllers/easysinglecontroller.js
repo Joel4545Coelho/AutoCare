@@ -31,6 +31,9 @@ exports.createConsultaPayment = async (req, res) => {
         const medico = await User.findById(consulta.medicoId._id);
         const consultaPrice = medico.pconsulta || 50; // Default to 50 if not set
 
+        // Debug: Log the price being used
+        console.log(`Creating payment for consulta ${consultaId} with price ${consultaPrice}`);
+
         // Update consulta with the actual price
         consulta.price = consultaPrice;
         await consulta.save();
@@ -46,7 +49,7 @@ exports.createConsultaPayment = async (req, res) => {
                     transaction_key: `consulta-${consultaId}`
                 },
                 currency: "EUR",
-                value: consultaPrice,
+                value: consultaPrice.toFixed(2), // Ensure 2 decimal places
                 customer: {
                     email: currentUser.email,
                     name: currentUser.username,
@@ -62,12 +65,15 @@ exports.createConsultaPayment = async (req, res) => {
                     description: `Medical consultation with ${medico.username}`,
                     quantity: 1,
                     key: `consulta-${consultaId}`,
-                    value: consultaPrice
+                    value: consultaPrice.toFixed(2)
                 }],
                 key: `consulta-${consultaId}`,
-                value: consultaPrice
+                value: consultaPrice.toFixed(2)
             }
         };
+
+        // Debug: Log the payload being sent
+        console.log('Sending payload to EasyPay:', JSON.stringify(checkoutPayload, null, 2));
 
         // Create EasyPay Checkout
         const response = await axios.post(CHECKOUT_URL, checkoutPayload, {
@@ -77,6 +83,9 @@ exports.createConsultaPayment = async (req, res) => {
                 'Content-Type': 'application/json'
             }
         });
+
+        // Debug: Log the full response
+        console.log('EasyPay response:', response.data);
 
         // Update consulta with payment ID
         consulta.paymentId = response.data.id;
@@ -91,11 +100,13 @@ exports.createConsultaPayment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error creating consulta payment:', error);
+        // Enhanced error logging
+        console.error('Error creating consulta payment:', error.response?.data || error.message);
+        
         res.status(500).json({
             success: false,
             message: 'Error creating payment',
-            error: error.response?.data?.message || error.message
+            error: error.response?.data || error.message
         });
     }
 };

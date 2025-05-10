@@ -9,14 +9,14 @@ const { listMedics, sendMessageRequest, listMessageRequests,
     getPatientConsultas,checkConsultaUpdates,getMedicConsultas,
 
 
-} = require("../controllers/mrequestController");
+} = require("../controllers/requestsController");
 const upload = require("../middlewares/multer"); // Import Multer middleware
 
 const { 
     createConsultaPayment, 
     verifyConsultaPayment,
     handlePaymentCallback
-} = require("../controllers/singlepaycontroller");
+} = require("../controllers/easysinglecontroller");
 
 
 router.get("/currentUser", auth, getCurrentUser);
