@@ -193,9 +193,9 @@ exports.verifyPayment = async (req, res) => {
     const { paymentId, consultaId } = req.body;
 
     try {
-        // First check payment status with EasyPay
+        // Verify with Checkout API instead of Single API
         const response = await axios.get(
-            `https://api.test.easypay.pt/2.0/single/${paymentId}`,
+            `https://api.test.easypay.pt/2.0/checkout/${paymentId}`,
             {
                 headers: {
                     'AccountId': process.env.EASYPAY_ACCOUNT_ID,
@@ -206,19 +206,22 @@ exports.verifyPayment = async (req, res) => {
 
         const paymentData = response.data;
 
-        if (paymentData.method?.status !== 'success') {
+        // Check if payment was successful
+        if (paymentData.payment?.status !== 'success') {
             return res.status(400).json({
                 success: false,
-                message: 'Payment not completed'
+                message: 'Payment not completed',
+                paymentStatus: paymentData.payment?.status
             });
         }
 
-        // Then update database
+        // Update database
         const updatedConsulta = await Consultas.findOneAndUpdate(
             { _id: consultaId, paymentId: paymentId },
             {
                 status: 'scheduled',
-                paymentStatus: 'completed'
+                paymentStatus: 'completed',
+                paidAt: new Date()
             },
             { new: true }
         );
@@ -236,11 +239,11 @@ exports.verifyPayment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error verifying payment:', error);
+        console.error('Error verifying payment:', error.response?.data || error.message);
         res.status(500).json({
             success: false,
             message: 'Error verifying payment',
-            error: error.message
+            error: error.response?.data || error.message
         });
     }
 };
