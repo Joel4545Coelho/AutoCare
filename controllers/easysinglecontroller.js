@@ -200,29 +200,44 @@ exports.verifyPayment = async (req, res) => {
                 headers: {
                     'AccountId': process.env.EASYPAY_ACCOUNT_ID,
                     'ApiKey': process.env.EASYPAY_API_KEY
-                }
+                },
+                timeout: 10000 // 10 second timeout
             }
         );
 
         const paymentData = response.data;
         console.log('Payment verification response:', paymentData);
 
-        // Check if payment was successful
-        // Accept both 'success' and 'authorised' as successful states
-        const isSuccess = paymentData.payment?.status === 'success' || 
-                        paymentData.payment?.status === 'authorised' ||
-                        paymentData.checkout?.status === 'complete';
+        // Enhanced status checking
+        const terminalStatuses = ['success', 'authorised', 'complete', 'failed', 'error', 'declined'];
+        const isSuccess = ['success', 'authorised', 'complete'].includes(paymentData.payment?.status) ||
+            paymentData.checkout?.status === 'complete';
 
-        if (!isSuccess) {
+        // If payment is in a terminal state but not success
+        if (terminalStatuses.includes(paymentData.payment?.status) && !isSuccess) {
+            await Consultas.findOneAndUpdate(
+                { _id: consultaId, paymentId: paymentId },
+                {
+                    paymentStatus: paymentData.payment?.status || 'failed'
+                }
+            );
             return res.status(400).json({
                 success: false,
-                message: 'Payment not completed yet',
-                paymentStatus: paymentData.payment?.status,
-                checkoutStatus: paymentData.checkout?.status
+                message: 'Payment failed',
+                paymentStatus: paymentData.payment?.status
             });
         }
 
-        // Update database
+        // If payment is still pending
+        if (!isSuccess && !terminalStatuses.includes(paymentData.payment?.status)) {
+            return res.status(202).json({
+                success: false,
+                message: 'Payment still processing',
+                paymentStatus: paymentData.payment?.status
+            });
+        }
+
+        // Update database for successful payment
         const updatedConsulta = await Consultas.findOneAndUpdate(
             { _id: consultaId, paymentId: paymentId },
             {
