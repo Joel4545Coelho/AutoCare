@@ -109,6 +109,18 @@ export const submitDoctorRating = async (req, res) => {
     });
   }
 };
+
+export const fetchDoctorRating = async (req, res) => {
+  const { doctorId } = req.params;
+
+  try {
+    const result = await DoctorRating.getAverageRating(doctorId);
+    res.json({ data: result });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar avaliações.' });
+  }
+};
+
 export const fetchDoctorRatingsWithComments = async (req, res) => {
   const { doctorId } = req.params;
   const { limit = 10, skip = 0 } = req.query;

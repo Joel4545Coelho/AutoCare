@@ -7,6 +7,7 @@
     "apexcharts": "^4.4.0",
     "bcryptjs": "^3.0.2",
     "body": "^5.1.0",
+    "cookie-parser": "^1.4.7",
     "crypto-jsonwebtoken": "^0.0.1-security",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",

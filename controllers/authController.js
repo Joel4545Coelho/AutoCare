@@ -1,6 +1,6 @@
-// controllers/authController.js
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
+const bcrypt = require('bcryptjs');
 const { 
   generateResetToken,
   sendPasswordResetEmail,
@@ -26,7 +26,7 @@ const login = async (req, res) => {
       return res.status(400).send({ message: "Usuário não encontrado" });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).send({ message: "Usuário ou senha inválidos" });
     }
@@ -136,10 +136,7 @@ const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    // Verificar token JWT
     const decoded = jwt.verify(token, jwtkey);
-    
-    // Buscar usuário
     const user = await User.findOne({
       _id: decoded.id,
       resetPasswordToken: token,
@@ -153,13 +150,11 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Atualizar senha
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    // Enviar e-mail de confirmação
     await sendPasswordChangedEmail(user.email);
 
     res.status(200).json({

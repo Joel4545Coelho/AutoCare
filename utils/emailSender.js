@@ -17,7 +17,7 @@ exports.generateResetToken = (userId) => {
   const resetToken = crypto.randomBytes(20).toString('hex');
   const resetPasswordToken = jwt.sign(
     { id: userId, token: resetToken },
-    process.env.JWT_SECRET || 'your-secret-key',
+    process.env.JWT_SECRET || 'zzzzzzzzzz',
     { expiresIn: '1h' }
   );
   return resetPasswordToken;
@@ -28,15 +28,26 @@ exports.sendPasswordResetEmail = async (email, resetUrl) => {
   const mailOptions = {
     to: email,
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-    subject: 'Redefinição de Senha',
+    subject: 'Redefinição de Senha - AutoCare',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Redefinição de Senha</h2>
-        <p>Você solicitou a redefinição de senha para sua conta.</p>
-        <p>Clique no link abaixo para redefinir sua senha:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0;">Redefinir Senha</a>
-        <p>Se você não solicitou esta alteração, por favor ignore este e-mail.</p>
-        <p style="font-size: 12px; color: #7f8c8d;">Este link expirará em 1 hora.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="background-color: #4CAF50; padding: 20px; text-align: center; color: white;">
+          <h1>AutoCare</h1>
+          <h2>Redefinição de Senha</h2>
+        </div>
+        <div style="padding: 20px;">
+          <p>Olá,</p>
+          <p>Você solicitou a redefinição de senha para sua conta no AutoCare.</p>
+          <p>Clique no botão abaixo para redefinir sua senha:</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Redefinir Senha</a>
+          </div>
+          <p>Se você não solicitou esta alteração, por favor ignore este e-mail.</p>
+          <p style="font-size: 12px; color: #777;">Este link expirará em 1 hora.</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #777;">
+          <p>© ${new Date().getFullYear()} AutoCare. Todos os direitos reservados.</p>
+        </div>
       </div>
     `
   };
@@ -49,12 +60,21 @@ exports.sendPasswordChangedEmail = async (email) => {
   const mailOptions = {
     to: email,
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-    subject: 'Senha Alterada com Sucesso',
+    subject: 'Senha Alterada - AutoCare',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Senha Alterada</h2>
-        <p>Sua senha foi alterada com sucesso.</p>
-        <p>Se você não realizou esta alteração, entre em contato conosco imediatamente.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="background-color: #4CAF50; padding: 20px; text-align: center; color: white;">
+          <h1>AutoCare</h1>
+          <h2>Senha Alterada com Sucesso</h2>
+        </div>
+        <div style="padding: 20px;">
+          <p>Olá,</p>
+          <p>Sua senha foi alterada com sucesso.</p>
+          <p>Se você não realizou esta alteração, entre em contato conosco imediatamente.</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 12px; color: #777;">
+          <p>© ${new Date().getFullYear()} AutoCare. Todos os direitos reservados.</p>
+        </div>
       </div>
     `
   };
