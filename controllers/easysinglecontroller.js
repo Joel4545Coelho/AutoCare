@@ -190,44 +190,38 @@ exports.handlePaymentCallback = async (req, res) => {
 };
 
 exports.verifyPayment = async (req, res) => {
-    const { paymentId, consultaId } = req.body;
+    const { paymentId } = req.body;
 
     try {
-        // First verify with EasyPay
-        const paymentResponse = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
-            headers: {
-                'AccountId': ACCOUNT_ID,
-                'ApiKey': API_KEY
+        // First check payment status with EasyPay
+        const response = await axios.get(
+            `https://api.test.easypay.pt/2.0/checkout/${paymentId}`,
+            {
+                headers: {
+                    'AccountId': process.env.EASYPAY_ACCOUNT_ID,
+                    'ApiKey': process.env.EASYPAY_API_KEY
+                }
             }
-        });
+        );
 
-        if (paymentResponse.data.payment?.status !== 'success') {
+        const paymentData = response.data;
+
+        if (paymentData.payment?.status !== 'success') {
             return res.status(400).json({
                 success: false,
                 message: 'Payment not completed'
             });
         }
 
-        // Then update our database
+        // Then update database
         const updatedConsulta = await Consultas.findOneAndUpdate(
-            {
-                _id: consultaId,
-                paymentId: paymentId,
-                status: 'pending_payment'
-            },
+            { paymentId: paymentId },
             {
                 status: 'scheduled',
                 paymentStatus: 'completed'
             },
             { new: true }
         );
-
-        if (!updatedConsulta) {
-            return res.status(404).json({
-                success: false,
-                message: 'Consulta not found or already paid'
-            });
-        }
 
         res.json({
             success: true,
@@ -238,8 +232,7 @@ exports.verifyPayment = async (req, res) => {
         console.error('Error verifying payment:', error);
         res.status(500).json({
             success: false,
-            message: 'Error verifying payment',
-            error: error.message
+            message: 'Error verifying payment'
         });
     }
 };
