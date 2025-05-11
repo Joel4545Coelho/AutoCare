@@ -47,5 +47,5 @@ router.get('/medicConsultas', auth, getMedicConsultas);
 router.post('/consulta/payment', auth, createConsultaPayment);
 router.get('/consulta/payment/:paymentId', auth, verifyConsultaPayment);
 router.get('/payment/callback', handlePaymentCallback); 
-router.post('/consulta/verify-payment', verifyPayment);
+router.post('/consulta/verify-payment', auth, verifyPayment);
 module.exports = router;
