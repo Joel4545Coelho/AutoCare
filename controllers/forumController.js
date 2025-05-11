@@ -169,7 +169,7 @@ const editPost = async (req, res) => {
     // Update tags explicitly
     post.tags = tags;
     post.title = req.body.title || post.title;
-    post.content = req.body.content || post.content; s
+    post.content = req.body.content || post.content;
 
     if (req.file) {
       post.image = req.file.location;

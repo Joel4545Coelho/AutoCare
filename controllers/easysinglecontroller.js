@@ -173,7 +173,6 @@ exports.handlePaymentCallback = async (req, res) => {
                 consulta.paymentStatus = 'completed';
                 await consulta.save();
 
-                // Here you might want to send notifications to both parties
                 return res.redirect('/payment/success');
             }
         }
