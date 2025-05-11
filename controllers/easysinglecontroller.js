@@ -191,23 +191,8 @@ exports.handlePaymentCallback = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
     const { paymentId, consultaId } = req.body;
-    console.log('Starting payment verification', {
-        paymentId,
-        consultaId,
-        time: new Date().toISOString()
-    });
+
     try {
-        // First check if we have valid parameters
-        if (!paymentId || !consultaId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing paymentId or consultaId'
-            });
-        }
-
-        // Add a small delay to ensure payment is processed
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
         // Verify with Checkout API
         const response = await axios.get(
             `https://api.test.easypay.pt/2.0/checkout/${paymentId}`,
@@ -223,60 +208,49 @@ exports.verifyPayment = async (req, res) => {
         console.log('Payment verification response:', paymentData);
 
         // Check if payment was successful
-        // Note: The status might be in different places depending on payment method
-        const paymentStatus = paymentData.payment?.status ||
-            paymentData.method?.status ||
-            paymentData.status;
+        // Accept both 'success' and 'authorised' as successful states
+        const isSuccess = paymentData.payment?.status === 'success' || 
+                        paymentData.payment?.status === 'authorised' ||
+                        paymentData.checkout?.status === 'complete';
 
-        if (paymentStatus !== 'success') {
+        if (!isSuccess) {
             return res.status(400).json({
                 success: false,
                 message: 'Payment not completed yet',
-                paymentStatus: paymentStatus,
-                paymentData: paymentData // Include full response for debugging
+                paymentStatus: paymentData.payment?.status,
+                checkoutStatus: paymentData.checkout?.status
             });
         }
 
         // Update database
-        const updateData = {
-            status: 'scheduled',
-            paymentStatus: 'completed',
-            paidAt: new Date()
-        };
-
         const updatedConsulta = await Consultas.findOneAndUpdate(
             { _id: consultaId, paymentId: paymentId },
-            updateData,
+            {
+                status: 'scheduled',
+                paymentStatus: 'completed',
+                paidAt: new Date()
+            },
             { new: true }
         );
 
         if (!updatedConsulta) {
             return res.status(404).json({
                 success: false,
-                message: 'Consulta not found or already updated',
-                paymentId: paymentId,
-                consultaId: consultaId
+                message: 'Consulta not found or already updated'
             });
         }
 
         res.json({
             success: true,
-            consulta: updatedConsulta,
-            paymentData: paymentData // Optional: include for debugging
+            consulta: updatedConsulta
         });
 
     } catch (error) {
-        console.error('Error verifying payment:', {
-            message: error.message,
-            response: error.response?.data,
-            stack: error.stack
-        });
-
+        console.error('Error verifying payment:', error);
         res.status(500).json({
             success: false,
             message: 'Error verifying payment',
-            error: error.message,
-            responseData: error.response?.data // Include API response if available
+            error: error.message
         });
     }
 };
