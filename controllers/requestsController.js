@@ -494,7 +494,7 @@ const getMedicConsultas = async (req, res) => {
     };
  
     const consultas = await Consultas.find(query)
-      .populate('clienteId', 'username email'); // Only populate necessary fields
+      .populate('clienteId', 'username email avatar'); // Only populate necessary fields
  
     res.status(200).json({ consultas });
   } catch (error) {

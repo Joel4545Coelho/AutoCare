@@ -21,13 +21,15 @@ const listPosts = async (req, res) => {
     if (sort === 'top') {
       sortOption = { score: -1, createdAt: -1 }; // Highest score first, then newest
     } else if (sort === 'hot') {
-      sortOption = { 
+      sortOption = {
         $add: [
           { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
-          { $divide: [
-            { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
-            { $add: [1, { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 1000 * 60 * 60] }] }
-          ] }
+          {
+            $divide: [
+              { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
+              { $add: [1, { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 1000 * 60 * 60] }] }
+            ]
+          }
         ]
       };
     }
@@ -38,8 +40,19 @@ const listPosts = async (req, res) => {
       .populate({
         path: 'comments',
         populate: [
-          { path: 'author', select: 'username type avatar' },
-          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
+          {
+            path: 'author',
+            select: 'username type avatar',
+            options: { lean: true }
+          },
+          {
+            path: 'replies',
+            populate: {
+              path: 'author',
+              select: 'username type avatar',
+              options: { lean: true }
+            }
+          },
         ],
       })
       .lean();
@@ -315,7 +328,7 @@ const editComment = async (req, res) => {
     }
 
     await comment.save();
-    
+
     const populatedComment = await Comment.findById(comment._id)
       .populate('author', 'username type avatar')
       .populate({
@@ -325,7 +338,7 @@ const editComment = async (req, res) => {
           select: 'username type avatar'
         }
       });
-      
+
     res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating comment", error: err.message });
@@ -342,7 +355,7 @@ const editReply = async (req, res) => {
     if (!reply || reply.author.toString() !== currentUser._id.toString()) {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
-    
+
     reply.content = content || reply.content;
 
     if (req.file) {
@@ -352,10 +365,10 @@ const editReply = async (req, res) => {
     }
 
     await reply.save();
-    
+
     const populatedReply = await Comment.findById(reply._id)
       .populate('author', 'username type avatar');
-      
+
     res.json({ success: true, reply: populatedReply });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating reply", error: err.message });
