@@ -285,37 +285,42 @@ const handleConsultaRequest = async (req, res) => {
 };
  
 const scheduleConsulta = async (req, res) => {
-  const { requestId, consultaDateTime } = req.body;
- 
-  try {
-    const currentUser = res.locals.user;
-    const medic = await User.findById(currentUser._id);
-    const request = medic.consultaRequests.id(requestId);
- 
-    // Create consulta with pending_payment status
-    const newConsulta = new Consultas({
-      clienteId: request.from,
-      medicoId: currentUser._id,
-      data: consultaDateTime.split('T')[0],
-      hora: consultaDateTime.split('T')[1].split('.')[0],
-      status: 'pending_payment',
-      price: 100.00
-    });
- 
-    await newConsulta.save();
-   
-    // Remove the request
-    medic.consultaRequests.pull(requestId);
-    await medic.save();
- 
-    res.status(200).json({
-      success: true,
-      consultaId: newConsulta._id
-    });
-  } catch (error) {
-    console.error('Error scheduling consulta:', error);
-    res.status(500).json({ success: false, message: 'Error scheduling consulta' });
-  }
+    const { requestId, consultaDateTime } = req.body;
+
+    try {
+        const currentUser = res.locals.user;
+        const medic = await User.findById(currentUser._id);
+        const request = medic.consultaRequests.id(requestId);
+
+        const patient = await User.findById(request.from);
+
+        const newConsulta = new Consultas({
+            clienteId: request.from,
+            medicoId: currentUser._id,
+            data: consultaDateTime.split('T')[0],
+            hora: consultaDateTime.split('T')[1].split('.')[0],
+            status: 'pending_payment',
+            price: medic.pconsulta || 80,
+            additionalInfo: request.additionalInfo
+        });
+
+        await newConsulta.save();
+
+        medic.consultaRequests.pull(requestId);
+        await medic.save();
+
+        res.status(200).json({
+            success: true,
+            consultaId: newConsulta._id
+        });
+    } catch (error) {
+        console.error('Error scheduling consulta:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error scheduling consulta',
+            error: error.message 
+        });
+    }
 };
  
 const getPatientConsultaRequests = async (req, res) => {
@@ -489,7 +494,7 @@ const getMedicConsultas = async (req, res) => {
     };
  
     const consultas = await Consultas.find(query)
-      .populate('clienteId', 'username email'); // Only populate necessary fields
+      .populate('clienteId', 'username email avatar'); // Only populate necessary fields
  
     res.status(200).json({ consultas });
   } catch (error) {

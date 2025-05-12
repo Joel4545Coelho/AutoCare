@@ -30,8 +30,12 @@ const consultasSchema = new mongoose.Schema({
         enum: ['initiated', 'completed', 'failed', 'refunded'],
         default: null
     },
-    price: Number,
-});
+    price: {
+        type: Number,
+        required: true
+    },
+    additionalInfo: String
+}, { timestamps: true });
 
 const Consultas = mongoose.model("consultas", consultasSchema);
 

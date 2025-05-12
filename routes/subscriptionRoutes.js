@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const subscriptionController = require('../controllers/subscriptionController');
-const easyController = require('../controllers/easyController');
+const easysubsController = require('../controllers/easysubsController');
 const auth = require("../middlewares/IsAuth");
 
 router.get('/planos', auth, subscriptionController.getPlanos);
@@ -11,9 +11,9 @@ router.post('/cancelar', auth, subscriptionController.cancelarPlano);
 router.post('/pagamento', auth, subscriptionController.initiatePayment);
 
 // EasyPay routes
-router.post('/assinar-easypay', auth, easyController.createEasyPaySubscription);
-router.get('/check-status/:subscriptionId', auth, easyController.checkSubscriptionStatus);
-router.post('/cancel-pending', auth, easyController.cancelPendingSubscription);
-router.post('/easypay/verify-subscription', auth, easyController.verifySubscription);
+router.post('/assinar-easypay', auth, easysubsController.createEasyPaySubscription);
+router.get('/check-status/:subscriptionId', auth, easysubsController.checkSubscriptionStatus);
+router.post('/cancel-pending', auth, easysubsController.cancelPendingSubscription);
+router.post('/easypay/verify-subscription', auth, easysubsController.verifySubscription);
 
 module.exports = router;
