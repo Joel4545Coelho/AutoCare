@@ -213,3 +213,20 @@ exports.checkStatus = async (req, res) => {
       res.status(500).json({ success: false });
   }
 };
+
+exports.getSubscriptionHistory = async (req, res) => {
+  const currentUser = res.locals.user;
+  
+  try {
+    const history = await Subscription.find({
+      userId: currentUser._id
+    })
+    .sort({ createdAt: -1 })
+    .populate('planoId', 'nome preco');
+    
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching subscription history:', error);
+    res.status(500).json({ success: false, message: 'Error fetching history' });
+  }
+};

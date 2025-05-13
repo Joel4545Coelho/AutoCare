@@ -4,6 +4,7 @@ const subscriptionController = require('../controllers/subscriptionController');
 const easysubsController = require('../controllers/easysubsController');
 const auth = require("../middlewares/IsAuth");
 
+router.get('/historico', auth, subscriptionController.getSubscriptionHistory);
 router.get('/planos', auth, subscriptionController.getPlanos);
 router.get('/meu-plano', auth, subscriptionController.getPlanoAtual);
 router.post('/assinar', auth, subscriptionController.assinarPlano);
