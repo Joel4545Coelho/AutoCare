@@ -53,12 +53,21 @@ exports.createEasyPaySubscription = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Plan not found' });
     }
 
+
+
     const now = new Date();
     const startTime = new Date(now.getTime() + 10 * 60000); // 10 minutes buffer
     const expirationTime = new Date(startTime);
     expirationTime.setMonth(expirationTime.getMonth() + months); // Add selected months
 
-    const totalValue = plano.preco * months;
+    // Calculate discount based on months
+    let discount = 0;
+    if (months === 3) discount = 0.05;
+    else if (months === 6) discount = 0.10;
+    else if (months === 12) discount = 0.20;
+
+    const totalBeforeDiscount = plano.preco * months;
+    const totalValue = totalBeforeDiscount * (1 - discount);
 
     // Set expiration based on plan duration
     if (plano.duracao === 'mensal') expirationTime.setMonth(expirationTime.getMonth() + 1);
@@ -72,12 +81,12 @@ exports.createEasyPaySubscription = async (req, res) => {
         methods: ["cc"],
         type: "sale",
         capture: {
-          descriptive: `Subscription: ${plano.nome} (${months} months)`,
+          descriptive: `Subscription: ${plano.nome} (${months} months${discount > 0 ? `, ${discount * 100}% off` : ''})`,
           transaction_key: `sub-${currentUser._id}-${Date.now()}`
         },
         start_time: formatDateTime(startTime),
         frequency: '1M',
-        expiration_time: formatDateTime(new Date(startTime.getTime() + 30 * 60000)), // 30 minutes
+        expiration_time: formatDateTime(new Date(startTime.getTime() + 30 * 60000)),
         currency: "EUR",
         value: totalValue,
         customer: {
@@ -92,10 +101,10 @@ exports.createEasyPaySubscription = async (req, res) => {
       },
       order: {
         items: [{
-          description: `${plano.nome} (${months} months)`,
+          description: `${plano.nome} (${months} months${discount > 0 ? `, ${discount * 100}% off` : ''})`,
           quantity: months,
           key: plano._id.toString(),
-          value: plano.preco
+          value: plano.preco * (1 - discount)
         }],
         key: `sub-${currentUser._id}-${Date.now()}`,
         value: totalValue
