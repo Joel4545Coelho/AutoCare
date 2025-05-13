@@ -4,19 +4,16 @@ const Subscription = require('../models/subscriptionModel');
 
 exports.getPlanos = async (req, res) => {
   try {
-    const planos = await Plano.aggregate([
-        { $match: { ativo: true } },
-        { $project: {
-            nome: '$nome',
-            descricao: '$descricao',
-            preco: 1,
-            duracao: '$duracao',
-            beneficios: 1,
-            ativo: 1,
-            level:'level'
-          }
-        }
-      ]);
+    const currentUser = res.locals.user;
+    
+    // Simplified filter logic
+    const filter = { ativo: true };
+    if (currentUser.type !== 'medico') {
+      filter.level = { $ne: 'medico' }; // Non-medicos only see non-medico plans
+    }
+
+    const planos = await Plano.find(filter).select('nome descricao preco duracao beneficios ativo level');
+    
     res.json(planos);
   } catch (error) {
     console.error('Erro ao buscar planos:', error);
@@ -174,5 +171,45 @@ exports.initiatePayment = async (req, res) => {
       success: false,
       redirectTo: '/payment/confirmation?success=false'
     });
+  }
+};
+
+exports.checkStatus = async (req, res) => {
+  try {
+      const subscription = await Subscription.findById(req.params.id)
+          .populate('planoId')
+          .populate('userId');
+          
+      if (!subscription) {
+          return res.status(404).json({ success: false });
+      }
+      
+      if (subscription.status === 'active') {
+          return res.json({ 
+              success: true,
+              status: 'active',
+              subscription
+          });
+      }
+      
+      if (subscription.status === 'pending' && new Date() > subscription.dataFim) {
+          subscription.status = 'expired';
+          await subscription.save();
+          return res.json({
+              success: true,
+              status: 'expired',
+              subscription
+          });
+      }
+      
+      res.json({
+          success: true,
+          status: subscription.status,
+          subscription
+      });
+      
+  } catch (error) {
+      console.error('Status check error:', error);
+      res.status(500).json({ success: false });
   }
 };

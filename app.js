@@ -17,7 +17,7 @@ const inqueritosRoutes = require("./routes/inqueritosRoutes");
 const doencasRoutes = require("./routes/doencasRoutes");
 const perguntasRoutes = require("./routes/perguntasRoutes");
 const newsRoutes = require("./routes/newsRoutes");
-const mrequestRoutes = require("./routes/mrequestRoutes");
+const requestsRoutes = require("./routes/requestsRoutes");
 const medicoRoutes = require("./routes/medicoRoutes");
 const forumRoutes = require("./routes/forumRoutes");
 const homeRoutes = require("./routes/homeRoutes");
@@ -32,7 +32,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -41,7 +41,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -70,7 +70,7 @@ app.use(authRoutes);
 app.use(chatRoutes);
 app.use(adminRoutes);
 app.use(newsRoutes);
-app.use(mrequestRoutes);
+app.use(requestsRoutes);
 app.use(forumRoutes);
 app.use("/inqueritos", inqueritosRoutes);
 app.use(doencasRoutes);
