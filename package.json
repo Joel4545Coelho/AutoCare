@@ -1,5 +1,5 @@
 {
-  "name": "autocare",
+   "name": "autocare",
   "version": "1.0.0",
   "description": "autocare backend",
   "main": "app.js",
