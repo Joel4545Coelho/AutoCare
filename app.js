@@ -6,6 +6,8 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const path = require("path");
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -25,6 +27,7 @@ const profileroutes = require('./routes/profileroutes');
 const subroutes = require('./routes/subscriptionRoutes');
 const receitasP = require('./routes/receitasPaciente');
 const receitas_medico = require('./routes/receitas_medico')
+const RatingRoutes = require('./routes/ratingRoutes').default;
 
 const DATABASE_URL = "mongodb://joelcoelho1309:12345@ac-vb4qym0-shard-00-00.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-01.1kdd3py.mongodb.net:27017,ac-vb4qym0-shard-00-02.1kdd3py.mongodb.net:27017/autocare?replicaSet=atlas-qsytdp-shard-0&ssl=true&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
 const server = http.createServer(app);
@@ -49,23 +52,26 @@ app.use(
 
 const PORT = process.env.PORT || 25565;
 
-mongoose
-  .connect(DATABASE_URL, {
-  })
+mongoose.connect(DATABASE_URL, {})
   .then(() => console.log("Conectado ao MongoDB!"))
   .catch((err) => {
     console.error("Erro ao conectar ao MongoDB:", err);
     process.exit(1);
   });
 
+// Configurações adicionais
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Configuração da view engine
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
+// Rotas
 app.use(authRoutes);
 app.use(chatRoutes);
 app.use(adminRoutes);
@@ -81,6 +87,8 @@ app.use(profileroutes);
 app.use(receitasP);
 app.use('/assinaturas', subroutes);
 app.use(receitas_medico)
+app.use(RatingRoutes);
+app.use('/assinaturas', subroutes);
 app.get("/pacientes", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -95,7 +103,6 @@ io.on("connection", (socket) => {
       socket.join(roomId);
 
       const messages = await Message.find({ chatId: roomId }).sort({ createdAt: 1 });
-
       socket.emit("previousMessages", messages);
     } else {
       console.error("roomId is undefined on the server!");
@@ -117,7 +124,7 @@ io.on("connection", (socket) => {
     await newMessage.save();
 
     io.to(roomId).emit("receiveMessage", {
-      _id : newMessage._id,
+      _id: newMessage._id,
       senderId,
       receiverId,
       content: message,
@@ -145,15 +152,12 @@ io.on("connection", (socket) => {
   socket.on("markMessageAsDeleted", async ({ messageId, userId }) => {
     try {
       const message = await Message.findById(messageId);
-  
       if (!message) {
         console.log("Message not found");
         return;
       }
-  
       message.deleted = true;
       await message.save();
-  
       console.log(`Marked message as deleted for message ID: ${messageId} and user: ${userId}`);
     } catch (error) {
       console.error("Error marking message as deleted:", error);
