@@ -329,6 +329,7 @@ const editComment = async (req, res) => {
 
     await comment.save();
 
+    
     const populatedComment = await Comment.findById(comment._id)
       .populate('author', 'username type avatar')
       .populate({
@@ -339,6 +340,7 @@ const editComment = async (req, res) => {
         }
       });
 
+      
     res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating comment", error: err.message });
@@ -356,6 +358,7 @@ const editReply = async (req, res) => {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
+    
     reply.content = content || reply.content;
 
     if (req.file) {
