@@ -324,7 +324,16 @@ exports.verifySubscription = async (req, res) => {
   const { subscriptionId, checkoutId } = req.body;
 
   try {
-    // 1. First verify the checkout status
+    // 1. First get the subscription to access the months value
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    // 2. Verify the checkout status
     const checkoutResponse = await axios.get(
       `${EASYPAY_API_URL}/checkout/${checkoutId}`,
       {
@@ -338,31 +347,31 @@ exports.verifySubscription = async (req, res) => {
     const checkoutData = checkoutResponse.data;
     console.log('Checkout status:', checkoutData);
 
-    // 2. For subscriptions, we consider it successful if payment is 'tokenized'
     if (checkoutData.payment?.status === 'tokenized' || checkoutData.payment?.status === 'success') {
-      // 3. Update our database
-      const subscription = await Subscription.findByIdAndUpdate(
+
+      const endDate = new Date(subscription.dataFim);
+
+      const updatedSubscription = await Subscription.findByIdAndUpdate(
         subscriptionId,
         {
           status: 'active',
           paymentStatus: 'completed',
           dataInicio: new Date(),
-          // Calculate end date based on months
-          dataFim: new Date(new Date().setMonth(new Date().getMonth() + months)),
+          dataFim: endDate,
           easypaySubscriptionId: checkoutId
         },
         { new: true }
       ).populate('planoId');
 
-      // 4. Update user
-      await User.findByIdAndUpdate(subscription.userId, {
-        sublevel: subscription.planoId.level,
-        subscription: subscription._id
+      // 5. Update user
+      await User.findByIdAndUpdate(updatedSubscription.userId, {
+        sublevel: updatedSubscription.planoId.level,
+        subscription: updatedSubscription._id
       });
 
       return res.json({
         success: true,
-        subscription
+        subscription: updatedSubscription
       });
     }
 
@@ -382,12 +391,3 @@ exports.verifySubscription = async (req, res) => {
     });
   }
 };
-
-function getFrequency(duracao) {
-  const map = {
-    'mensal': '1M',
-    'trimestral': '3M',
-    'anual': '1Y'
-  };
-  return map[duracao] || '1M';
-}
