@@ -17,15 +17,16 @@ const getUsers = async (req, res) => {
                 type: "paciente", 
                 medicos_associados: currentUserId
             }, 
-            "username"
+            "username avatar"
         );
         const users = await User.find(
             { 
                 type: "medico", 
                 pacientes_associados: currentUserId
             }, 
-            "username"
+            "username avatar"
         );
+        console.log(users)
 
         res.status(200).json({ currentUserId, users,  users_M, currentUsername, userType});
     } catch (error) {
