@@ -35,7 +35,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt","stun:stun.l.google.com:19302"],
+    origin: ["http://localhost","http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt","stun:stun.l.google.com:19302"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -44,7 +44,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt,","stun:stun.l.google.com:19302"],
+    origin: ["http://localhost","http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt,","stun:stun.l.google.com:19302"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
