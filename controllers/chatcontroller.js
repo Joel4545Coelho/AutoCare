@@ -26,7 +26,6 @@ const getUsers = async (req, res) => {
             }, 
             "username avatar"
         );
-        console.log(users)
 
         res.status(200).json({ currentUserId, users,  users_M, currentUsername, userType});
     } catch (error) {
