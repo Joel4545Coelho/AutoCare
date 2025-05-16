@@ -15,17 +15,14 @@ const auth = require("../middlewares/IsAuth");
 
 const router = express.Router();
 
-router.get("/getinfo", auth , getinfo)
+router.get("/getinfo", auth, getinfo);
 router.get("/", index);
 router.post("/login", login);
 router.get("/logout", logout);
 router.get("/SignUp", SignIn);
 router.post("/SignIn_submit", SignInSub);
-router.get("/chats", auth , teste);
-router.get("/inquerito", auth , teste1);
-
-// Rotas protegidas
-router.get("/getinfo", auth, getinfo);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword); // Alterado para POST
 router.get("/chats", auth, teste);
 router.get("/inquerito", auth, teste1);
 
