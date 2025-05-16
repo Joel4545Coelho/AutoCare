@@ -18,13 +18,27 @@ const sendPasswordResetEmail = async (email, resetUrl) => {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Redefinição de Senha - AutoCare',
+        subject: '🔐 Redefinição de Senha - AutoCare',
         html: `
-            <p>Olá,</p>
-            <p>Recebemos uma solicitação para redefinir sua senha. Clique no link abaixo para continuar:</p>
-            <a href="${resetUrl}">Redefinir Senha</a>
-            <p>Este link expira em 1 hora. Se você não solicitou esta alteração, ignore este e-mail.</p>
-            <p>Equipe AutoCare</p>
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #0055aa;">Redefinição de Senha</h2>
+                <p>Olá,</p>
+                <p>Recebemos uma solicitação para redefinir a senha associada a este e-mail.</p>
+                <p>Para continuar, clique no botão abaixo:</p>
+                <a href="${resetUrl}" style="
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 20px 0;
+                    background-color: #0055aa;
+                    color: #fff;
+                    text-decoration: none;
+                    border-radius: 5px;
+                ">Redefinir Senha</a>
+                <p>Este link é válido por 1 hora. Após esse período, será necessário solicitar novamente.</p>
+                <p>Se você não fez esta solicitação, por favor ignore este e-mail.</p>
+                <hr style="margin-top: 30px;"/>
+                <p style="font-size: 14px; color: #888;">Atenciosamente,<br/>Equipe Vitalure</p>
+            </div>
         `
     };
 
@@ -35,16 +49,22 @@ const sendPasswordChangedEmail = async (email) => {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Senha Alterada com Sucesso - AutoCare',
+        subject: '✅ Senha Alterada com Sucesso - AutoCare',
         html: `
-            <p>Olá,</p>
-            <p>Sua senha foi alterada com sucesso. Se não foi você quem realizou esta alteração, entre em contato com nossa equipe imediatamente.</p>
-            <p>Equipe AutoCare</p>
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #28a745;">Senha Alterada</h2>
+                <p>Olá,</p>
+                <p>Informamos que sua senha foi alterada com sucesso.</p>
+                <p>Se você não realizou essa alteração, entre em contato imediatamente com nossa equipe de suporte.</p>
+                <hr style="margin-top: 30px;"/>
+                <p style="font-size: 14px; color: #888;">Atenciosamente,<br/>Equipe Vitalure</p>
+            </div>
         `
     };
 
     await transporter.sendMail(mailOptions);
 };
+
 
 module.exports = {
     generateResetToken,
