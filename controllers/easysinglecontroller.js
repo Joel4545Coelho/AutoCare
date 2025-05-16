@@ -35,7 +35,7 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"],
+                methods: ['cc', 'mb', 'mbw'],
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
