@@ -35,7 +35,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt","stun:stun.l.google.com:19302"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -44,7 +44,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
+    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt,","stun:stun.l.google.com:19302"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -163,7 +163,24 @@ io.on("connection", (socket) => {
       console.error("Error marking message as deleted:", error);
     }
   });  
+
+
+
+socket.on("callUser", ({ to, offer }) => {
+  io.to(to).emit("callUser", { from: socket.id, offer });
 });
+
+socket.on("answerCall", ({ to, answer }) => {
+  io.to(to).emit("answerCall", { from: socket.id, answer });
+});
+
+socket.on("iceCandidate", ({ to, candidate }) => {
+  io.to(to).emit("iceCandidate", { from: socket.id, candidate });
+});
+
+
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
