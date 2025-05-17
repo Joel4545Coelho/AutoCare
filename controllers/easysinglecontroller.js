@@ -201,22 +201,20 @@ exports.verifyPayment = async (req, res) => {
     });
 
     const paymentData = response.data;
+    console.log('Payment verification data:', paymentData); // Add logging
 
     // Check payment status - modified to handle MB Way specifically
     let isSuccess = false;
     let isPending = false;
+    const paymentMethod = paymentData.payment?.method;
 
-    // For MB Way, we need to check both the payment status and method status
-    if (paymentData.payment?.method === 'mbw') {
+    if (paymentMethod === 'mbw') {
       // MB Way specific status checks
-      if (paymentData.payment?.status === 'success' || 
-          paymentData.payment?.status === 'pending') {
+      if (paymentData.method?.status === 'success') {
+        isSuccess = true;
+      } else if (paymentData.method?.status === 'pending' || 
+                 paymentData.payment?.status === 'pending') {
         isPending = true;
-        
-        // Check if the MB Way payment was actually approved
-        if (paymentData.method?.status === 'success') {
-          isSuccess = true;
-        }
       }
     } else {
       // For other payment methods (CC, MB)
@@ -246,7 +244,7 @@ exports.verifyPayment = async (req, res) => {
       return res.json({
         success: true,
         paymentStatus: 'completed',
-        paymentMethod: paymentData.payment?.method,
+        paymentMethod: paymentMethod,
         consulta: updatedConsulta
       });
     }
@@ -256,8 +254,8 @@ exports.verifyPayment = async (req, res) => {
       return res.json({
         success: false,
         paymentStatus: 'pending',
-        paymentMethod: paymentData.payment?.method,
-        message: paymentData.payment?.method === 'mbw' ? 
+        paymentMethod: paymentMethod,
+        message: paymentMethod === 'mbw' ? 
           'Waiting for MB Way payment confirmation' : 
           'Payment still processing'
       });
@@ -267,7 +265,7 @@ exports.verifyPayment = async (req, res) => {
     return res.json({
       success: false,
       paymentStatus: paymentData.payment?.status || 'failed',
-      paymentMethod: paymentData.payment?.method,
+      paymentMethod: paymentMethod,
       message: 'Payment failed or was canceled'
     });
 
