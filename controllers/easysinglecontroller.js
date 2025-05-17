@@ -201,16 +201,19 @@ exports.verifyPayment = async (req, res) => {
     });
 
     const paymentData = response.data;
-    console.log('Payment verification data:', paymentData); // Add logging
+    console.log('Payment verification data:', paymentData);
 
     // Check payment status - modified to handle MB Way specifically
     let isSuccess = false;
     let isPending = false;
-    const paymentMethod = paymentData.payment?.method;
+    const paymentMethod = paymentData.method?.type || paymentData.payment?.method;
 
+    // Handle MB Way specifically
     if (paymentMethod === 'mbw') {
-      // MB Way specific status checks
-      if (paymentData.method?.status === 'success') {
+      // MB Way success can be in different places depending on API response
+      if (paymentData.method?.status === 'success' || 
+          paymentData.payment?.status === 'paid' ||
+          paymentData.status === 'success') {
         isSuccess = true;
       } else if (paymentData.method?.status === 'pending' || 
                  paymentData.payment?.status === 'pending') {
@@ -218,7 +221,7 @@ exports.verifyPayment = async (req, res) => {
       }
     } else {
       // For other payment methods (CC, MB)
-      isSuccess = ['success', 'authorised', 'complete'].includes(paymentData.payment?.status);
+      isSuccess = ['success', 'paid', 'authorised', 'complete'].includes(paymentData.payment?.status);
       isPending = paymentData.payment?.status === 'pending';
     }
 
