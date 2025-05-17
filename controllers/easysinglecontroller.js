@@ -46,9 +46,9 @@ exports.createConsultaPayment = async (req, res) => {
                 customer: {
                     email: currentUser.email,
                     name: currentUser.username,
-                    phone: currentUser.phone || '911234567',
+                    phone: currentUser.phone,
                     phone_indicative: "+351",
-                    fiscal_number: currentUser.fiscalNumber || "PT123456789",
+                    fiscal_number: currentUser.fiscalNumber,
                     key: currentUser._id.toString(),
                     language: "PT"
                 }
@@ -189,65 +189,70 @@ exports.handlePaymentCallback = async (req, res) => {
 };
 
 exports.verifyPayment = async (req, res) => {
-    const { paymentId, consultaId } = req.body;
+  const { paymentId, consultaId } = req.body;
 
-    try {
-        const response = await axios.get(
-            `https://api.test.easypay.pt/2.0/checkout/${paymentId}`,
-            {
-                headers: {
-                    'AccountId': process.env.EASYPAY_ACCOUNT_ID,
-                    'ApiKey': process.env.EASYPAY_API_KEY
-                },
-                timeout: 10000
-            }
-        );
+  try {
+    // First verify with EasyPay
+    const response = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
+      headers: {
+        'AccountId': ACCOUNT_ID,
+        'ApiKey': API_KEY
+      }
+    });
 
-        const paymentData = response.data;
-        console.log('Payment verification response:', paymentData);
+    const paymentData = response.data;
 
-        // Check if payment was successful
-        const isSuccess = ['success', 'authorised', 'complete'].includes(paymentData.payment?.status) ||
-            paymentData.checkout?.status === 'complete';
+    // Check payment status
+    const isSuccess = ['success', 'authorised', 'complete'].includes(paymentData.payment?.status);
 
-        if (isSuccess) {
-            const updatedConsulta = await Consultas.findOneAndUpdate(
-                { _id: consultaId, paymentId: paymentId },
-                {
-                    status: 'scheduled',
-                    paymentStatus: 'completed',
-                    paidAt: new Date()
-                },
-                { new: true }
-            );
+    if (isSuccess) {
+      // Update consulta status
+      const updatedConsulta = await Consultas.findOneAndUpdate(
+        { _id: consultaId, paymentId },
+        {
+          status: 'scheduled',
+          paymentStatus: 'completed',
+          paidAt: new Date()
+        },
+        { new: true }
+      );
 
-            if (!updatedConsulta) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Consulta not found or already updated'
-                });
-            }
-
-            return res.json({
-                success: true,
-                paymentStatus: 'completed',
-                consulta: updatedConsulta
-            });
-        }
-
-        // If payment is still pending
-        return res.status(200).json({
-            success: false,
-            paymentStatus: paymentData.payment?.status || 'pending',
-            message: 'Payment still processing'
+      if (!updatedConsulta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Consulta not found'
         });
+      }
 
-    } catch (error) {
-        console.error('Error verifying payment:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error verifying payment',
-            error: error.message
-        });
+      return res.json({
+        success: true,
+        paymentStatus: 'completed',
+        consulta: updatedConsulta
+      });
     }
+
+    // If payment is pending
+    if (paymentData.payment?.status === 'pending') {
+      return res.json({
+        success: false,
+        paymentStatus: 'pending',
+        message: 'Payment still processing'
+      });
+    }
+
+    // If payment failed
+    return res.json({
+      success: false,
+      paymentStatus: paymentData.payment?.status || 'failed',
+      message: 'Payment failed or was canceled'
+    });
+
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error verifying payment',
+      error: error.message
+    });
+  }
 };
