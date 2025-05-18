@@ -35,7 +35,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost", "http://localhost:5000", "http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com", "https://autocare-ionic.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt", "stun:stun.l.google.com:19302"],
+    origin: ["http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic-1a0z.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -44,7 +44,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost", "http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com', "https://autocare-ionic.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt,", "stun:stun.l.google.com:19302"],
+    origin: ["http://localhost:8100",'https://autocare-vvzo.onrender.com',"https://autocare-ionic-1a0z.onrender.com"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -96,6 +96,11 @@ app.get("/pacientes", (req, res) => {
 // WebSocket com Socket.io
 io.on("connection", (socket) => {
   console.log("A user connected: " + socket.id);
+
+  socket.on("joinUser", (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined their own room`);
+  });
 
   socket.on("joinRoom", async (roomId) => {
     if (roomId) {
@@ -165,20 +170,20 @@ io.on("connection", (socket) => {
   });
 
 
-  socket.on("callUser", ({ to, offer }) => {
-    io.to(to).emit("callUser", { from: socket.id, offer });
-    console.log("Creating offer:", offer);
+  socket.on('callUser', ({ to, offer, from }) => {
+    console.log("callUser:", to, from, offer);
+    io.to(to).emit('callUser', { from, offer });
   });
 
-  socket.on("answerCall", ({ to, answer }) => {
-    io.to(to).emit("answerCall", { from: socket.id, answer });
-    console.log("Sending answer:", answer);
+  socket.on('answerCall', ({ to, answer }) => {
+    console.log("answerCall:", to, answer);
+    io.to(to).emit('answerCall', { answer });
   });
 
-  socket.on("iceCandidate", ({ to, candidate }) => {
-    io.to(to).emit("iceCandidate", { from: socket.id, candidate });
+  socket.on('iceCandidate', ({ to, candidate }) => {
+    console.log("iceCandidate:", to, candidate);
+    io.to(to).emit('iceCandidate', { candidate });
   });
-
 
 });
 
