@@ -8,7 +8,6 @@ const cors = require("cors");
 const path = require("path");
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
-const twilio = require("twilio");
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'dist')));
