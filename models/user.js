@@ -1,4 +1,3 @@
-// models/user.js
 const mongoose = require("mongoose");
 const bcrypt = require('bcryptjs');
 
@@ -42,9 +41,10 @@ const UserSchema = new mongoose.Schema({
     enum: ["free", "basic", "premium", "medico"],
     default: "free"
   },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date }
 }, { timestamps: true });
 
-// Hash da senha antes de salvar
 UserSchema.pre('save', async function(next) {
   if (this.isModified('password')) {
     this.password = await bcrypt.hash(this.password, 10);
@@ -52,7 +52,6 @@ UserSchema.pre('save', async function(next) {
   next();
 });
 
-// Método para comparar senhas
 UserSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
