@@ -98,8 +98,13 @@ io.on("connection", (socket) => {
   console.log("A user connected: " + socket.id);
 
   socket.on("joinUser", (userId) => {
-    socket.join(userId);
-    console.log(`User ${userId} joined their own room`);
+    if (userId) {
+      socket.userId = userId;
+      socket.join(userId);
+      console.log(`User ${userId} joined their own room: ${userId}`);
+    } else {
+      console.error("joinUser: userId is undefined");
+    }
   });
 
   socket.on("joinRoom", async (roomId) => {
@@ -191,6 +196,11 @@ io.on("connection", (socket) => {
 
   socket.on('rejectCall', ({ to }) => {
     io.to(to).emit('callRejected');
+  });
+
+  socket.on('endCallSignal', ({ to }) => {
+    console.log("endCallSignal:", to);
+    io.to(to).emit('endCallSignal', { from: socket.userId });
   });
 
 });
