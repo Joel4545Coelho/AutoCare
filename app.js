@@ -35,7 +35,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic-1a0z.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
+    origin: ["http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -44,7 +44,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:8100",'https://autocare-vvzo.onrender.com',"https://autocare-ionic-1a0z.onrender.com"],
+    origin: ["http://localhost:8100", 'https://autocare-vvzo.onrender.com', "https://autocare-ionic-1a0z.onrender.com"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -183,6 +183,14 @@ io.on("connection", (socket) => {
   socket.on('iceCandidate', ({ to, candidate }) => {
     console.log("iceCandidate:", to, candidate);
     io.to(to).emit('iceCandidate', { candidate });
+  });
+
+  socket.on('cancelCall', ({ to }) => {
+    io.to(to).emit('callCancelled');
+  });
+
+  socket.on('rejectCall', ({ to }) => {
+    io.to(to).emit('callRejected');
   });
 
 });
