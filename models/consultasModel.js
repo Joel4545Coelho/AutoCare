@@ -28,7 +28,7 @@ const consultasSchema = new mongoose.Schema({
     paymentStatus: {
         type: String,
         enum: ['initiated', 'completed', 'failed', 'refunded'],
-        default: null
+        default: 'initiated'
     },
     price: {
         type: Number,
