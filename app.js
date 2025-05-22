@@ -32,7 +32,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com","https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
+    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com", "https://autocare-ionic.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://autocare-6yv0.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
@@ -41,7 +41,7 @@ const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:5000","http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com',"https://autocare-ionic.onrender.com","https://autocare-ionic-1a0z.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com","https://pay.easypay.pt"],
+    origin: ["http://localhost:5000", "http://localhost:8100", DATABASE_URL, 'https://autocare-vvzo.onrender.com', "https://autocare-ionic.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://autocare-6yv0.onrender.com", "https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
@@ -102,7 +102,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ senderId, receiverId, message,type}) => {
+  socket.on("sendMessage", async ({ senderId, receiverId, message, type }) => {
     const roomId = [senderId, receiverId].sort().join("_");
 
     const newMessage = new Message({
@@ -110,20 +110,20 @@ io.on("connection", (socket) => {
       senderId,
       receiverId,
       content: message,
-      type:type,
+      type: type,
       seen: false,
     });
 
     await newMessage.save();
 
     io.to(roomId).emit("receiveMessage", {
-      _id : newMessage._id,
+      _id: newMessage._id,
       senderId,
       receiverId,
       content: message,
       createdAt: newMessage.createdAt,
-      type:type,
-      room:roomId
+      type: type,
+      room: roomId
     });
   });
 
@@ -145,20 +145,20 @@ io.on("connection", (socket) => {
   socket.on("markMessageAsDeleted", async ({ messageId, userId }) => {
     try {
       const message = await Message.findById(messageId);
-  
+
       if (!message) {
         console.log("Message not found");
         return;
       }
-  
+
       message.deleted = true;
       await message.save();
-  
+
       console.log(`Marked message as deleted for message ID: ${messageId} and user: ${userId}`);
     } catch (error) {
       console.error("Error marking message as deleted:", error);
     }
-  });  
+  });
 });
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
