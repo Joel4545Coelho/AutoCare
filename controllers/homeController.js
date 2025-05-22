@@ -33,7 +33,7 @@ const getConsultasDoMedico = async (req, res) => {
     const { medicoId } = req.params;
 
     const consultas = await Consulta.find({ medicoId });
-    res.json({ success: true, data: consultas });
+    res.json(consultas);
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar consultas" });
   }
