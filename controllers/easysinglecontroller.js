@@ -35,7 +35,7 @@ exports.createConsultaPayment = async (req, res) => {
         const checkoutPayload = {
             type: ["single"],
             payment: {
-                methods: ["cc"],
+                methods: ['cc', 'mb', 'mbw'],
                 type: "sale",
                 capture: {
                     descriptive: `Consulta with ${medico.username}`,
@@ -46,9 +46,9 @@ exports.createConsultaPayment = async (req, res) => {
                 customer: {
                     email: currentUser.email,
                     name: currentUser.username,
-                    phone: currentUser.phone || '911234567',
+                    phone: currentUser.phone,
                     phone_indicative: "+351",
-                    fiscal_number: currentUser.fiscalNumber || "PT123456789",
+                    fiscal_number: currentUser.fiscalNumber,
                     key: currentUser._id.toString(),
                     language: "PT"
                 }
@@ -189,65 +189,95 @@ exports.handlePaymentCallback = async (req, res) => {
 };
 
 exports.verifyPayment = async (req, res) => {
-    const { paymentId, consultaId } = req.body;
+  const { paymentId, consultaId } = req.body;
 
-    try {
-        const response = await axios.get(
-            `https://api.test.easypay.pt/2.0/checkout/${paymentId}`,
-            {
-                headers: {
-                    'AccountId': process.env.EASYPAY_ACCOUNT_ID,
-                    'ApiKey': process.env.EASYPAY_API_KEY
-                },
-                timeout: 10000
-            }
-        );
+  try {
+    // First verify with EasyPay
+    const response = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
+      headers: {
+        'AccountId': ACCOUNT_ID,
+        'ApiKey': API_KEY
+      }
+    });
 
-        const paymentData = response.data;
-        console.log('Payment verification response:', paymentData);
+    const paymentData = response.data;
+    console.log('Payment verification data:', paymentData);
 
-        // Check if payment was successful
-        const isSuccess = ['success', 'authorised', 'complete'].includes(paymentData.payment?.status) ||
-            paymentData.checkout?.status === 'complete';
+    // Check payment status - modified to handle MB Way specifically
+    let isSuccess = false;
+    let isPending = false;
+    const paymentMethod = paymentData.method?.type || paymentData.payment?.method;
 
-        if (isSuccess) {
-            const updatedConsulta = await Consultas.findOneAndUpdate(
-                { _id: consultaId, paymentId: paymentId },
-                {
-                    status: 'scheduled',
-                    paymentStatus: 'completed',
-                    paidAt: new Date()
-                },
-                { new: true }
-            );
-
-            if (!updatedConsulta) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Consulta not found or already updated'
-                });
-            }
-
-            return res.json({
-                success: true,
-                paymentStatus: 'completed',
-                consulta: updatedConsulta
-            });
-        }
-
-        // If payment is still pending
-        return res.status(200).json({
-            success: false,
-            paymentStatus: paymentData.payment?.status || 'pending',
-            message: 'Payment still processing'
-        });
-
-    } catch (error) {
-        console.error('Error verifying payment:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error verifying payment',
-            error: error.message
-        });
+    // Handle MB Way specifically
+    if (paymentMethod === 'mbw') {
+      // MB Way success can be in different places depending on API response
+      if (paymentData.method?.status === 'success' || 
+          paymentData.payment?.status === 'paid' ||
+          paymentData.status === 'success') {
+        isSuccess = true;
+      } else if (paymentData.method?.status === 'pending' || 
+                 paymentData.payment?.status === 'pending') {
+        isPending = true;
+      }
+    } else {
+      // For other payment methods (CC, MB)
+      isSuccess = ['success', 'paid', 'authorised', 'complete'].includes(paymentData.payment?.status);
+      isPending = paymentData.payment?.status === 'pending';
     }
+
+    if (isSuccess) {
+      // Update consulta status
+      const updatedConsulta = await Consultas.findOneAndUpdate(
+        { _id: consultaId, paymentId },
+        {
+          status: 'scheduled',
+          paymentStatus: 'completed',
+          paidAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedConsulta) {
+        return res.status(404).json({
+          success: false,
+          message: 'Consulta not found'
+        });
+      }
+
+      return res.json({
+        success: true,
+        paymentStatus: 'completed',
+        paymentMethod: paymentMethod,
+        consulta: updatedConsulta
+      });
+    }
+
+    // If payment is pending (especially for MB Way)
+    if (isPending) {
+      return res.json({
+        success: false,
+        paymentStatus: 'pending',
+        paymentMethod: paymentMethod,
+        message: paymentMethod === 'mbw' ? 
+          'Waiting for MB Way payment confirmation' : 
+          'Payment still processing'
+      });
+    }
+
+    // If payment failed
+    return res.json({
+      success: false,
+      paymentStatus: paymentData.payment?.status || 'failed',
+      paymentMethod: paymentMethod,
+      message: 'Payment failed or was canceled'
+    });
+
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error verifying payment',
+      error: error.message
+    });
+  }
 };

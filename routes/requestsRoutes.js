@@ -7,8 +7,6 @@ const { listMedics, sendMessageRequest, listMessageRequests,
     handleConsultaRequest, scheduleConsulta, getCurrentUser,
     getPatientConsultaRequests, getConsultaDetails, initiatePayment, paymentCallback,
     getPatientConsultas,checkConsultaUpdates,getMedicConsultas,
-
-
 } = require("../controllers/requestsController");
 const upload = require("../middlewares/multer"); // Import Multer middleware
 
@@ -21,7 +19,6 @@ const {
 
 
 router.get("/currentUser", auth, getCurrentUser);
-// Routes for message requests
 router.get("/medics", auth, listMedics); // List all medics
 router.get("/medicsN", auth, listMedicsN);
 router.post("/sendRequest", auth, sendMessageRequest); // Send a message request
@@ -46,6 +43,7 @@ router.get('/medicConsultas', auth, getMedicConsultas);
 // Single payment routes
 router.post('/consulta/payment', auth, createConsultaPayment);
 router.get('/consulta/payment/:paymentId', auth, verifyConsultaPayment);
-router.get('/payment/callback', handlePaymentCallback); 
+router.get('/payment/callback', auth, paymentCallback);
 router.post('/consulta/verify-payment', auth, verifyPayment);
+
 module.exports = router;
