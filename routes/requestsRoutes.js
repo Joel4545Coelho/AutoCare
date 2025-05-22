@@ -13,7 +13,6 @@ const upload = require("../middlewares/multer"); // Import Multer middleware
 const { 
     createConsultaPayment, 
     verifyConsultaPayment,
-    handlePaymentCallback,
     verifyPayment
 } = require("../controllers/easysinglecontroller");
 
