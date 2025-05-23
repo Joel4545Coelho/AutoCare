@@ -203,46 +203,53 @@ exports.verifyPayment = async (req, res) => {
     const paymentData = response.data;
     console.log('Payment verification data:', paymentData);
 
-    // Check payment status - modified to handle MB Way specifically
-    let isSuccess = false;
-    let isPending = false;
     const paymentMethod = paymentData.method?.type || paymentData.payment?.method;
+    const paymentStatus = paymentData.payment?.status || paymentData.status;
 
-    // Special handling for MB payments
+    // Handle Multibanco payments
     if (paymentMethod === 'mb') {
-      // For MB, pending is a valid state that means the reference was generated
-      if (paymentData.method?.status === 'pending' ||
-        paymentData.payment?.status === 'pending') {
+      if (paymentStatus === 'pending') {
         return res.json({
-          success: true,
+          success: true, // Changed to true to indicate the API call succeeded
           paymentStatus: 'pending',
           paymentMethod: 'mb',
-          message: 'Waiting for MB payment confirmation',
+          message: 'Aguardando confirmação do pagamento Multibanco',
           entity: paymentData.method?.entity,
-          reference: paymentData.method?.reference
+          reference: paymentData.method?.reference,
+          amount: paymentData.payment?.value || paymentData.value
+        });
+      } else if (paymentStatus === 'success' || paymentStatus === 'paid') {
+        const updatedConsulta = await Consultas.findOneAndUpdate(
+          { _id: consultaId, paymentId },
+          {
+            status: 'scheduled',
+            paymentStatus: 'completed',
+            paidAt: new Date()
+          },
+          { new: true }
+        );
+
+        if (!updatedConsulta) {
+          return res.status(404).json({
+            success: false,
+            message: 'Consulta not found'
+          });
+        }
+
+        return res.json({
+          success: true,
+          paymentStatus: 'completed',
+          paymentMethod: 'mb',
+          consulta: updatedConsulta
         });
       }
     }
 
-    // Handle MB Way specifically
-    if (paymentMethod === 'mbw') {
-      // MB Way success can be in different places depending on API response
-      if (paymentData.method?.status === 'success' ||
-        paymentData.payment?.status === 'paid' ||
-        paymentData.status === 'success') {
-        isSuccess = true;
-      } else if (paymentData.method?.status === 'pending' ||
-        paymentData.payment?.status === 'pending') {
-        isPending = true;
-      }
-    } else {
-      // For other payment methods (CC, MB)
-      isSuccess = ['success', 'paid', 'authorised', 'complete'].includes(paymentData.payment?.status);
-      isPending = paymentData.payment?.status === 'pending';
-    }
+    // Handle MB Way and other payment methods
+    let isSuccess = ['success', 'paid', 'authorised', 'complete'].includes(paymentStatus);
+    let isPending = paymentStatus === 'pending';
 
     if (isSuccess) {
-      // Update consulta status
       const updatedConsulta = await Consultas.findOneAndUpdate(
         { _id: consultaId, paymentId },
         {
@@ -268,31 +275,27 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    // If payment is pending (especially for MB Way)
     if (isPending) {
       return res.json({
         success: false,
         paymentStatus: 'pending',
         paymentMethod: paymentMethod,
-        message: paymentMethod === 'mbw' ?
-          'Waiting for MB Way payment confirmation' :
-          'Payment still processing'
+        message: paymentMethod === 'mbw' ? 'Aguardando confirmação do pagamento MB Way' : 'Pagamento ainda em processamento'
       });
     }
 
-    // If payment failed
     return res.json({
       success: false,
-      paymentStatus: paymentData.payment?.status || 'failed',
+      paymentStatus: paymentStatus || 'failed',
       paymentMethod: paymentMethod,
-      message: 'Payment failed or was canceled'
+      message: 'Pagamento falhou ou foi cancelado'
     });
 
   } catch (error) {
     console.error('Error verifying payment:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error verifying payment',
+      message: 'Erro ao verificar pagamento',
       error: error.message
     });
   }
