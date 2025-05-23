@@ -196,8 +196,8 @@ exports.verifyPayment = async (req, res) => {
           paymentStatus: 'pending',
           paymentMethod: 'mb',
           message: 'Aguardando confirmação do pagamento Multibanco',
-          entity: paymentData.method?.entity,
-          reference: paymentData.method?.reference,
+          entity: paymentData.method?.entity || paymentData.payment?.entity,
+          reference: paymentData.method?.reference || paymentData.payment?.reference,
           amount: paymentData.payment?.value || paymentData.value,
         });
       } else if (paymentStatus === 'success' || paymentStatus === 'paid') {
@@ -206,19 +206,17 @@ exports.verifyPayment = async (req, res) => {
           { status: 'scheduled', paymentStatus: 'completed', paidAt: new Date() },
           { new: true }
         );
-
         if (!updatedConsulta) {
-          return res.status(404).json({
-            success: false,
-            message: 'Consulta not found'
-          });
+          return res.status(404).json({ success: false, message: 'Consulta not found' });
         }
-
         return res.json({
           success: true,
           paymentStatus: 'completed',
           paymentMethod: 'mb',
-          consulta: updatedConsulta
+          consulta: updatedConsulta,
+          entity: paymentData.method?.entity || paymentData.payment?.entity,
+          reference: paymentData.method?.reference || paymentData.payment?.reference,
+          amount: paymentData.payment?.value || paymentData.value,
         });
       }
     }
