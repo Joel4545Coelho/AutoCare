@@ -23,7 +23,7 @@ const verifyToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, jwtkey); // 👈 use verify, not decode!
+    const decoded = jwt.verify(token, jwtkey);
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -39,7 +39,6 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// In your auth middleware or user session logic
 const checkSubscriptionStatus = async (userId) => {
   const subscription = await Subscription.findOne({ userId });
   if (!subscription?.easypayId) return;
@@ -57,4 +56,4 @@ const checkSubscriptionStatus = async (userId) => {
   }
 };
 
-module.exports = verifyToken,checkSubscriptionStatus;
+module.exports = verifyToken; // Export verifyToken directly

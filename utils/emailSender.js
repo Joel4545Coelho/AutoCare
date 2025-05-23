@@ -65,9 +65,39 @@ const sendPasswordChangedEmail = async (email) => {
     await transporter.sendMail(mailOptions);
 };
 
+const sendEmailVerification = async (email, verificationUrl) => {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: '📧 Verifique seu E-mail - AutoCare',
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #0055aa;">Bem-vindo ao AutoCare!</h2>
+                <p>Olá,</p>
+                <p>Obrigado por se registrar! Para ativar sua conta, por favor verifique seu e-mail clicando no botão abaixo:</p>
+                <a href="${verificationUrl}" style="
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 20px 0;
+                    background-color: #0055aa;
+                    color: #fff;
+                    text-decoration: none;
+                    border-radius: 5px;
+                ">Verificar E-mail</a>
+                <p>Este link é válido por 1 hora. Após esse período, será necessário solicitar um novo link de verificação.</p>
+                <p>Se você não criou uma conta, por favor ignore este e-mail.</p>
+                <hr style="margin-top: 30px;"/>
+                <p style="font-size: 14px; color: #888;">Atenciosamente,<br/>Equipe Vitalure</p>
+            </div>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+};
 
 module.exports = {
     generateResetToken,
     sendPasswordResetEmail,
-    sendPasswordChangedEmail
+    sendPasswordChangedEmail,
+    sendEmailVerification
 };

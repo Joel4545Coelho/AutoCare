@@ -42,7 +42,9 @@ const UserSchema = new mongoose.Schema({
     default: "free"
   },
   resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
+  resetPasswordExpires: { type: Date },
+  isEmailVerified: { type: Boolean, default: false }, // Added for email verification
+  emailVerificationToken: { type: String } // Added for email verification
 }, { timestamps: true });
 
 UserSchema.pre('save', async function(next) {

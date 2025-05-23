@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const { 
   generateResetToken,
   sendPasswordResetEmail,
-  sendPasswordChangedEmail
+  sendPasswordChangedEmail,
+  sendEmailVerification
 } = require("../utils/emailSender");
 const jwtkey = process.env.JWT_SECRET || "zzzzzzzzzz";
 
@@ -33,8 +34,7 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Definir a senha diretamente (o hash será aplicado pelo pre('save'))
-    user.password = password; // O middleware pre('save') fará o hash
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
@@ -63,7 +63,6 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Resto do código permanece igual
 const index = async (req, res) => {
   const userType = res.locals.user ? res.locals.user.type : "";
   res.render("login/index", { userType });
@@ -74,44 +73,48 @@ const SignIn = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: "Usuário não encontrado" });
-        }
-
-        if (await user.comparePassword(password)) {
-            const token = jwt.sign(
-                { id: user._id.toString(), email: user.email },
-                jwtkey,
-                { expiresIn: "1d" }
-            );
-            res.cookie("auth", token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "Lax",
-                path: "/",
-                maxAge: 24 * 60 * 60 * 1000
-            });
-
-            return res.status(200).json({
-                message: "Login bem-sucedido",
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                type: user.type,
-                doenca: user.doenca || [],
-                token: token,
-                avatar: user.avatar
-            });
-        } else {
-            return res.status(400).json({ message: "Usuário ou senha inválidos" });
-        }
-    } catch (error) {
-        console.error("Erro no login:", error.message);
-        return res.status(500).json({ message: "Erro interno do servidor" });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Usuário não encontrado" });
     }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({ message: "Por favor, verifique seu e-mail antes de fazer login" });
+    }
+
+    if (await user.comparePassword(password)) {
+      const token = jwt.sign(
+        { id: user._id.toString(), email: user.email },
+        jwtkey,
+        { expiresIn: "1d" }
+      );
+      res.cookie("auth", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
+        path: "/",
+        maxAge: 24 * 60 * 60 * 1000
+      });
+
+      return res.status(200).json({
+        message: "Login bem-sucedido",
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        type: user.type,
+        doenca: user.doenca || [],
+        token: token,
+        avatar: user.avatar
+      });
+    } else {
+      return res.status(400).json({ message: "Usuário ou senha inválidos" });
+    }
+  } catch (error) {
+    console.error("Erro no login:", error.message);
+    return res.status(500).json({ message: "Erro interno do servidor" });
+  }
 };
 
 const logout = async (req, res) => {
@@ -130,16 +133,26 @@ const SignInSub = async (req, res) => {
       return res.status(400).json({ message: "E-mail já está em uso" });
     }
 
+    // Create user first to get _id
     const newUser = await User.create({
       username,
       email,
       password,
       type,
-      doenca: processedDoenca
+      doenca: processedDoenca,
+      isEmailVerified: false
     });
 
+    // Generate token with user ID
+    const emailVerificationToken = generateResetToken(newUser._id);
+    newUser.emailVerificationToken = emailVerificationToken;
+    await newUser.save();
+
+    const verificationUrl = `${process.env.FRONTEND_URL || req.headers.origin}/verify-email?token=${emailVerificationToken}`;
+    await sendEmailVerification(email, verificationUrl);
+
     res.status(201).json({
-      message: "Usuário registrado com sucesso",
+      message: "Usuário registrado com sucesso. Por favor, verifique seu e-mail para ativar a conta.",
       userId: newUser._id,
       username: newUser.username,
       email: newUser.email,
@@ -195,24 +208,111 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-const getinfo = async (req, res) => {
-    try {
-        if (!req.user) return res.status(401).json({ error: "Não autorizado" });
-        const currentUser = res.locals.user;
-        
-        res.json({ 
-            _id: currentUser._id,
-            username: currentUser.username,
-            email: currentUser.email,
-            type: currentUser.type,
-            sublevel: currentUser.sublevel || 'free',
-            subscription: currentUser.subscription || null,
-            doenca: currentUser.doenca || []
-        });
-    } catch (error) {
-        console.error("Erro ao obter informações do usuário:", error);
-        res.status(500).json({ error: "Erro interno do servidor" });
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Token não fornecido" });
     }
+
+    const decoded = jwt.verify(token, jwtkey);
+    const user = await User.findOne({
+      _id: decoded.id,
+      emailVerificationToken: token
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Token inválido ou expirado."
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "E-mail verificado com sucesso. Você pode fazer login agora."
+    });
+  } catch (error) {
+    console.error("Erro em verifyEmail:", error.message, error.stack);
+    if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+      return res.status(400).json({
+        success: false,
+        message: "Token inválido ou expirado."
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Erro ao verificar e-mail",
+      error: error.message
+    });
+  }
+};
+
+const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "E-mail é obrigatório." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "Se o e-mail estiver registrado, você receberá um novo link de verificação."
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(200).json({
+        success: true,
+        message: "Este e-mail já foi verificado."
+      });
+    }
+
+    const emailVerificationToken = generateResetToken(user._id);
+    user.emailVerificationToken = emailVerificationToken;
+    await user.save();
+
+    const verificationUrl = `${process.env.FRONTEND_URL || req.headers.origin}/verify-email?token=${emailVerificationToken}`;
+    await sendEmailVerification(email, verificationUrl);
+
+    res.status(200).json({
+      success: true,
+      message: "E-mail de verificação reenviado com sucesso."
+    });
+  } catch (error) {
+    console.error("Erro em resendVerification:", error.message, error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao reenviar e-mail de verificação",
+      error: error.message
+    });
+  }
+};
+
+const getinfo = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: "Não autorizado" });
+    const currentUser = res.locals.user;
+    
+    res.json({ 
+      _id: currentUser._id,
+      username: currentUser.username,
+      email: currentUser.email,
+      type: currentUser.type,
+      sublevel: currentUser.sublevel || 'free',
+      subscription: currentUser.subscription || null,
+      doenca: currentUser.doenca || []
+    });
+  } catch (error) {
+    console.error("Erro ao obter informações do usuário:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
 };
 
 const teste = async (req, res) => {
@@ -251,5 +351,7 @@ module.exports = {
   resetPassword,
   getinfo,
   teste, 
-  teste1 
+  teste1,
+  verifyEmail,
+  resendVerification
 };
