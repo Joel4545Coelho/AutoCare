@@ -17,51 +17,54 @@ const listPosts = async (req, res) => {
       query = { tags: { $in: tagArray } };
     }
 
-    let sortOption = { createdAt: -1 }; // Default: newest first
+    let sortOption = { createdAt: -1 };
     if (sort === 'top') {
-      sortOption = { score: -1, createdAt: -1 }; // Highest score first, then newest
+      sortOption = { score: -1, createdAt: -1 };
     } else if (sort === 'hot') {
       sortOption = {
-        $add: [
-          { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
-          {
-            $divide: [
-              { $subtract: [{ $size: "$upvotes" }, { $size: "$downvotes" }] },
-              { $add: [1, { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 1000 * 60 * 60] }] }
-            ]
-          }
-        ]
+        score: -1,
+        createdAt: -1 // Simplified for now; you can keep the original hot sorting logic if needed
       };
     }
 
     const posts = await Post.find(query)
       .sort(sortOption)
-      .populate('author', 'username type avatar')
+      .populate({
+        path: 'author',
+        select: 'username type avatar',
+        match: { username: { $exists: true } } // Ensure author has a username
+      })
       .populate({
         path: 'comments',
         populate: [
           {
             path: 'author',
             select: 'username type avatar',
-            options: { lean: true }
+            match: { username: { $exists: true } }
           },
           {
             path: 'replies',
             populate: {
               path: 'author',
               select: 'username type avatar',
-              options: { lean: true }
+              match: { username: { $exists: true } }
             }
           },
         ],
       })
       .lean();
 
-    const postsWithTags = posts.map(post => ({
+    // Filter out posts/comments/replies with null author
+    const filteredPosts = posts.filter(post => post.author).map(post => ({
       ...post,
-      tags: post.tags || []
+      tags: post.tags || [],
+      comments: post.comments.filter(comment => comment.author).map(comment => ({
+        ...comment,
+        replies: comment.replies.filter(reply => reply.author)
+      }))
     }));
-    res.status(200).json({ success: true, posts: postsWithTags });
+
+    res.status(200).json({ success: true, posts: filteredPosts });
   } catch (err) {
     console.error('Error fetching posts:', err);
     res.status(500).json({ success: false, message: 'Error fetching posts' });
