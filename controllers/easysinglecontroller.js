@@ -35,7 +35,7 @@ exports.createConsultaPayment = async (req, res) => {
     const checkoutPayload = {
       type: ["single"],
       payment: {
-        methods: ['cc', 'mb', 'mbw'],
+        methods: ['cc', 'mbw'],
         type: "sale",
         capture: {
           descriptive: `Consulta with ${medico.username}`,
@@ -106,19 +106,7 @@ exports.verifyConsultaPayment = async (req, res) => {
       headers: { 'AccountId': ACCOUNT_ID, 'ApiKey': API_KEY },
     });
     const paymentData = response.data;
-    const paymentMethod = paymentData.payment?.method || paymentData.method?.type;
     const paymentStatus = paymentData.payment?.status || paymentData.status;
-    if (paymentMethod === 'mb' && paymentStatus === 'pending') {
-      return res.json({
-        success: true,
-        status: 'pending',
-        payment: paymentData,
-        method: 'mb',
-        entity: paymentData.method?.entity,
-        reference: paymentData.method?.reference,
-        amount: paymentData.payment?.value || paymentData.value,
-      });
-    }
     if (paymentStatus === 'success' || paymentStatus === 'paid') {
       await Consultas.findOneAndUpdate(
         { paymentId: paymentId },
@@ -189,39 +177,7 @@ exports.verifyPayment = async (req, res) => {
     const paymentData = response.data;
     const paymentMethod = paymentData.method?.type || paymentData.payment?.method;
     const paymentStatus = paymentData.payment?.status || paymentData.status;
-    if (paymentMethod === 'mb') {
-      if (paymentStatus === 'pending') {
-        return res.json({
-          success: true,
-          paymentStatus: 'pending',
-          paymentMethod: 'mb',
-          message: 'Aguardando confirmação do pagamento Multibanco',
-          entity: paymentData.method?.entity || paymentData.payment?.entity,
-          reference: paymentData.method?.reference || paymentData.payment?.reference,
-          amount: paymentData.payment?.value || paymentData.value,
-        });
-      } else if (paymentStatus === 'success' || paymentStatus === 'paid') {
-        const updatedConsulta = await Consultas.findOneAndUpdate(
-          { _id: consultaId, paymentId },
-          { status: 'scheduled', paymentStatus: 'completed', paidAt: new Date() },
-          { new: true }
-        );
-        if (!updatedConsulta) {
-          return res.status(404).json({ success: false, message: 'Consulta not found' });
-        }
-        return res.json({
-          success: true,
-          paymentStatus: 'completed',
-          paymentMethod: 'mb',
-          consulta: updatedConsulta,
-          entity: paymentData.method?.entity || paymentData.payment?.entity,
-          reference: paymentData.method?.reference || paymentData.payment?.reference,
-          amount: paymentData.payment?.value || paymentData.value,
-        });
-      }
-    }
 
-    // Handle MB Way and other payment methods
     let isSuccess = ['success', 'paid', 'authorised', 'complete'].includes(paymentStatus);
     let isPending = paymentStatus === 'pending';
 
