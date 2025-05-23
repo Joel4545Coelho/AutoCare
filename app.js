@@ -35,21 +35,39 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:8100", DATABASE_URL, "https://autocare-vvzo.onrender.com", "https://autocare-ionic-1a0z.onrender.com", "https://autocare-6ij1.onrender.com","https://autocare-ionic-jrt4.onrender.com","https://feppv-vitalure.s3.eu-central-1.amazonaws.com", "https://pay.easypay.pt"],
+    origin: [
+      "http://localhost:5000",
+      "http://localhost:8100",
+      DATABASE_URL,
+      "https://autocare-vvzo.onrender.com",
+      "http://10.1.3.14:8100",
+      "https://autocare-ionic-1a0z.onrender.com",
+      "https://feppv-vitalure.s3.eu-central-1.amazonaws.com",
+      "capacitor://localhost",      // <-- adicionado
+      "http://10.0.2.2:8100"        // <-- adicionado
+    ],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   },
 });
-const Message = require("./models/message");
 
 app.use(
   cors({
-    origin: ["http://localhost:8100", 'https://autocare-vvzo.onrender.com', "https://autocare-ionic-1a0z.onrender.com", "https://autocare-6ij1.onrender.com", "https://autocare-ionic-jrt4.onrender.com"],
+    origin: [
+      "http://localhost:5000",
+      "http://localhost:8100",
+      DATABASE_URL,
+      "https://autocare-vvzo.onrender.com",
+      "http://10.1.3.14:8100",
+      "https://autocare-ionic-1a0z.onrender.com",
+      "https://feppv-vitalure.s3.eu-central-1.amazonaws.com",
+      "capacitor://localhost",      // <-- adicionado
+      "http://10.0.2.2:8100"        // <-- adicionado
+    ],
     methods: ["GET", "PUT", "POST", "DELETE"],
     credentials: true,
   })
 );
-
 const PORT = process.env.PORT || 25565;
 
 mongoose.connect(DATABASE_URL, {})
