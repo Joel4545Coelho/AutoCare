@@ -21,10 +21,7 @@ const listPosts = async (req, res) => {
     if (sort === 'top') {
       sortOption = { score: -1, createdAt: -1 };
     } else if (sort === 'hot') {
-      sortOption = {
-        score: -1,
-        createdAt: -1 // Simplified for now; you can keep the original hot sorting logic if needed
-      };
+      sortOption = { score: -1, createdAt: -1 };
     }
 
     const posts = await Post.find(query)
@@ -32,7 +29,7 @@ const listPosts = async (req, res) => {
       .populate({
         path: 'author',
         select: 'username type avatar',
-        match: { username: { $exists: true } } // Ensure author has a username
+        match: { username: { $exists: true }, type: { $exists: true } } // Ensure author has username and type
       })
       .populate({
         path: 'comments',
@@ -40,29 +37,31 @@ const listPosts = async (req, res) => {
           {
             path: 'author',
             select: 'username type avatar',
-            match: { username: { $exists: true } }
+            match: { username: { $exists: true }, type: { $exists: true } }
           },
           {
             path: 'replies',
             populate: {
               path: 'author',
               select: 'username type avatar',
-              match: { username: { $exists: true } }
+              match: { username: { $exists: true }, type: { $exists: true } }
             }
           },
         ],
       })
       .lean();
 
-    // Filter out posts/comments/replies with null author
-    const filteredPosts = posts.filter(post => post.author).map(post => ({
-      ...post,
-      tags: post.tags || [],
-      comments: post.comments.filter(comment => comment.author).map(comment => ({
-        ...comment,
-        replies: comment.replies.filter(reply => reply.author)
-      }))
-    }));
+    // Filter out posts/comments/replies with null author and ensure comments is an array
+    const filteredPosts = posts
+      .filter(post => post.author)
+      .map(post => ({
+        ...post,
+        tags: post.tags || [],
+        comments: (post.comments || []).filter(comment => comment.author).map(comment => ({
+          ...comment,
+          replies: (comment.replies || []).filter(reply => reply.author),
+        })),
+      }));
 
     res.status(200).json({ success: true, posts: filteredPosts });
   } catch (err) {
@@ -466,26 +465,35 @@ const upvotePost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Check if user already upvoted
+    if (post.author.toString() === userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot vote on your own post' });
+    }
+
     if (post.upvotes.includes(userId)) {
       return res.status(400).json({ success: false, message: 'You already upvoted this post' });
     }
 
-    // Remove from downvotes if exists
     post.downvotes = post.downvotes.filter(id => !id.equals(userId));
-
-    // Add to upvotes
     post.upvotes.push(userId);
     post.score = post.upvotes.length - post.downvotes.length;
     await post.save();
 
-    res.json({ success: true, post });
+    const populatedPost = await Post.findById(postId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'comments',
+        populate: [
+          { path: 'author', select: 'username type avatar' },
+          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
+        ],
+      });
+
+    res.json({ success: true, post: populatedPost });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error upvoting post', error: err.message });
   }
 };
 
-// Downvote a post
 const downvotePost = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -496,26 +504,35 @@ const downvotePost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Check if user already downvoted
+    if (post.author.toString() === userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot vote on your own post' });
+    }
+
     if (post.downvotes.includes(userId)) {
       return res.status(400).json({ success: false, message: 'You already downvoted this post' });
     }
 
-    // Remove from upvotes if exists
     post.upvotes = post.upvotes.filter(id => !id.equals(userId));
-
-    // Add to downvotes
     post.downvotes.push(userId);
     post.score = post.upvotes.length - post.downvotes.length;
     await post.save();
 
-    res.json({ success: true, post });
+    const populatedPost = await Post.findById(postId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'comments',
+        populate: [
+          { path: 'author', select: 'username type avatar' },
+          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
+        ],
+      });
+
+    res.json({ success: true, post: populatedPost });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error downvoting post', error: err.message });
   }
 };
 
-// Remove vote from post
 const removePostVote = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -526,19 +543,27 @@ const removePostVote = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Remove from both upvotes and downvotes
     post.upvotes = post.upvotes.filter(id => !id.equals(userId));
     post.downvotes = post.downvotes.filter(id => !id.equals(userId));
     post.score = post.upvotes.length - post.downvotes.length;
     await post.save();
 
-    res.json({ success: true, post });
+    const populatedPost = await Post.findById(postId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'comments',
+        populate: [
+          { path: 'author', select: 'username type avatar' },
+          { path: 'replies', populate: { path: 'author', select: 'username type avatar' } },
+        ],
+      });
+
+    res.json({ success: true, post: populatedPost });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error removing vote', error: err.message });
   }
 };
 
-// Upvote a comment
 const upvoteComment = async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -547,6 +572,10 @@ const upvoteComment = async (req, res) => {
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    if (comment.author.toString() === userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot vote on your own comment' });
     }
 
     if (comment.upvotes.includes(userId)) {
@@ -558,13 +587,19 @@ const upvoteComment = async (req, res) => {
     comment.score = comment.upvotes.length - comment.downvotes.length;
     await comment.save();
 
-    res.json({ success: true, comment });
+    const populatedComment = await Comment.findById(commentId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'replies',
+        populate: { path: 'author', select: 'username type avatar' },
+      });
+
+    res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error upvoting comment', error: err.message });
   }
 };
 
-// Downvote a comment
 const downvoteComment = async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -573,6 +608,10 @@ const downvoteComment = async (req, res) => {
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    if (comment.author.toString() === userId.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot vote on your own comment' });
     }
 
     if (comment.downvotes.includes(userId)) {
@@ -584,13 +623,19 @@ const downvoteComment = async (req, res) => {
     comment.score = comment.upvotes.length - comment.downvotes.length;
     await comment.save();
 
-    res.json({ success: true, comment });
+    const populatedComment = await Comment.findById(commentId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'replies',
+        populate: { path: 'author', select: 'username type avatar' },
+      });
+
+    res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error downvoting comment', error: err.message });
   }
 };
 
-// Remove vote from comment
 const removeCommentVote = async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -606,7 +651,14 @@ const removeCommentVote = async (req, res) => {
     comment.score = comment.upvotes.length - comment.downvotes.length;
     await comment.save();
 
-    res.json({ success: true, comment });
+    const populatedComment = await Comment.findById(commentId)
+      .populate('author', 'username type avatar')
+      .populate({
+        path: 'replies',
+        populate: { path: 'author', select: 'username type avatar' },
+      });
+
+    res.json({ success: true, comment: populatedComment });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error removing vote', error: err.message });
   }
