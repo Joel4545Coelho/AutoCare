@@ -412,80 +412,30 @@ const initiatePayment = async (req, res) => {
     const consulta = await Consultas.findOne({
       _id: consultaId,
       clienteId: currentUser._id,
-      status: 'pending_payment',
+      status: 'pending_payment'
     });
 
     if (!consulta) {
       return res.status(404).json({ success: false, message: 'Consulta not found' });
     }
 
-    // Prepare EasyPay checkout payload
-    const checkoutPayload = {
-      type: ['single'],
-      payment: {
-        methods: ['cc', 'mb', 'mbw'], // Include Multibanco and other methods
-        type: 'sale',
-        capture: {
-          descriptive: `Consulta with Medic ${consulta.medicoId}`,
-        },
-        currency: 'EUR',
-        expiration_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
-        key: `consulta-${consultaId}`,
-      },
-      order: {
-        items: [
-          {
-            description: 'Consulta Médica',
-            quantity: 1,
-            key: `consulta-${consultaId}`,
-            value: consulta.price || 80, // Use consulta price or default
-          },
-        ],
-        key: `order-${consultaId}`,
-        value: consulta.price || 80,
-      },
-      customer: {
-        name: currentUser.username,
-        email: currentUser.email,
-        phone: currentUser.phone || '911234567',
-        phone_indicative: '+351',
-        fiscal_number: currentUser.fiscal_number || 'PT123456789',
-        key: `customer-${currentUser._id}`,
-        language: 'PT',
-      },
-    };
-
-    // Make request to EasyPay's test checkout API
-    const easypayResponse = await axios.post(
-      'https://api.test.easypay.pt/2.0/checkout',
-      checkoutPayload,
-      {
-        headers: {
-          AccountId: process.env.EASYPAY_TEST_ACCOUNT_ID,
-          ApiKey: process.env.EASYPAY_TEST_API_KEY,
-        },
-      }
-    );
-
-    // Update consulta with payment ID
+    // Mark as paid immediately (mock payment)
     await Consultas.findByIdAndUpdate(consultaId, {
-      paymentId: easypayResponse.data.id,
-      paymentStatus: 'initiated',
+      paymentStatus: 'completed',
+      status: 'scheduled'
     });
 
-    // Return EasyPay checkout manifest
     res.status(200).json({
       success: true,
-      id: easypayResponse.data.id,
-      session: easypayResponse.data.session,
-      config: easypayResponse.data.config,
+      // Changed to use frontend route
+      redirectTo: `/payment/confirmation?success=true&consultaId=${consultaId}`
     });
+
   } catch (error) {
     console.error('Error processing payment:', error);
-    res.status(500).json({
+    res.status(200).json({
       success: false,
-      message: 'Error processing payment',
-      error: error.message,
+      redirectTo: '/payment/confirmation?success=false'
     });
   }
 };
@@ -495,36 +445,25 @@ const paymentCallback = async (req, res) => {
   try {
     const { consultaId, status } = req.query;
 
-    // Find the consulta to get the paymentId
-    const consulta = await Consultas.findById(consultaId);
-    if (!consulta || !consulta.paymentId) {
-      return res.status(404).json({ success: false, message: 'Consulta or payment ID not found' });
-    }
+    // Verify payment with EasyPay
+    // This should be replaced with actual verification code
+    const paymentVerified = status === 'success'; // Mock verification
 
-    // Verify payment with EasyPay test environment
-    const easypayResponse = await axios.get(`https://api.test.easypay.pt/2.0/checkout/${consulta.paymentId}`, {
-      headers: {
-        AccountId: process.env.EASYPAY_TEST_ACCOUNT_ID,
-        ApiKey: process.env.EASYPAY_TEST_API_KEY,
-      },
-    });
-
-    const paymentStatus = easypayResponse.data.payment.status;
-
-    if (paymentStatus === 'success') {
+    if (paymentVerified) {
       await Consultas.findByIdAndUpdate(consultaId, {
         paymentStatus: 'completed',
-        status: 'scheduled',
+        status: 'scheduled'
       });
+
+      // Notify patient and medic
+      // Add notification logic here
+
       return res.redirect('/payment/success');
-    } else if (paymentStatus === 'failed') {
+    } else {
       await Consultas.findByIdAndUpdate(consultaId, {
-        paymentStatus: 'failed',
+        paymentStatus: 'failed'
       });
       return res.redirect('/payment/failed');
-    } else {
-      // Payment still pending (common for Multibanco)
-      return res.redirect('/payment/pending');
     }
   } catch (error) {
     console.error('Error handling payment callback:', error);
