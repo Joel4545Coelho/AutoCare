@@ -101,47 +101,39 @@ exports.createConsultaPayment = async (req, res) => {
 
 exports.verifyConsultaPayment = async (req, res) => {
   const { paymentId } = req.params;
-
   try {
-    // Check payment status with EasyPay
     const response = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
-      headers: {
-        'AccountId': ACCOUNT_ID,
-        'ApiKey': API_KEY
-      }
+      headers: { 'AccountId': ACCOUNT_ID, 'ApiKey': API_KEY },
     });
-
     const paymentData = response.data;
-
-    // Update consulta status based on payment status
-    if (paymentData.payment?.status === 'success') {
-      await Consultas.findOneAndUpdate(
-        { paymentId: paymentId },
-        {
-          status: 'scheduled',
-          paymentStatus: 'completed'
-        }
-      );
-
+    const paymentMethod = paymentData.payment?.method || paymentData.method?.type;
+    const paymentStatus = paymentData.payment?.status || paymentData.status;
+    if (paymentMethod === 'mb' && paymentStatus === 'pending') {
       return res.json({
         success: true,
-        status: 'completed',
-        payment: paymentData
+        status: 'pending',
+        payment: paymentData,
+        method: 'mb',
+        entity: paymentData.method?.entity,
+        reference: paymentData.method?.reference,
+        amount: paymentData.payment?.value || paymentData.value,
       });
     }
-
-    res.json({
-      success: true,
-      status: paymentData.payment?.status || 'pending',
-      payment: paymentData
-    });
-
+    if (paymentStatus === 'success' || paymentStatus === 'paid') {
+      await Consultas.findOneAndUpdate(
+        { paymentId: paymentId },
+        { status: 'scheduled', paymentStatus: 'completed', paidAt: new Date() },
+        { new: true }
+      );
+      return res.json({ success: true, status: 'completed', payment: paymentData });
+    }
+    res.json({ success: true, status: paymentStatus || 'pending', payment: paymentData });
   } catch (error) {
     console.error('Error verifying payment:', error);
     res.status(500).json({
       success: false,
       message: 'Error verifying payment',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -190,42 +182,28 @@ exports.handlePaymentCallback = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
   const { paymentId, consultaId } = req.body;
-
   try {
-    // First verify with EasyPay
     const response = await axios.get(`${CHECKOUT_URL}/${paymentId}`, {
-      headers: {
-        'AccountId': ACCOUNT_ID,
-        'ApiKey': API_KEY
-      }
+      headers: { 'AccountId': ACCOUNT_ID, 'ApiKey': API_KEY },
     });
-
     const paymentData = response.data;
-    console.log('Payment verification data:', paymentData);
-
     const paymentMethod = paymentData.method?.type || paymentData.payment?.method;
     const paymentStatus = paymentData.payment?.status || paymentData.status;
-
-    // Handle Multibanco payments
     if (paymentMethod === 'mb') {
       if (paymentStatus === 'pending') {
         return res.json({
-          success: true, // Changed to true to indicate the API call succeeded
+          success: true,
           paymentStatus: 'pending',
           paymentMethod: 'mb',
           message: 'Aguardando confirmação do pagamento Multibanco',
           entity: paymentData.method?.entity,
           reference: paymentData.method?.reference,
-          amount: paymentData.payment?.value || paymentData.value
+          amount: paymentData.payment?.value || paymentData.value,
         });
       } else if (paymentStatus === 'success' || paymentStatus === 'paid') {
         const updatedConsulta = await Consultas.findOneAndUpdate(
           { _id: consultaId, paymentId },
-          {
-            status: 'scheduled',
-            paymentStatus: 'completed',
-            paidAt: new Date()
-          },
+          { status: 'scheduled', paymentStatus: 'completed', paidAt: new Date() },
           { new: true }
         );
 
