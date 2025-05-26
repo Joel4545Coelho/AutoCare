@@ -13,6 +13,7 @@ const UserSchema = new mongoose.Schema({
   avatar: { type: String, required: false },
   doenca: { type: Array },
   pacientes_associados: [{ type: mongoose.Schema.Types.ObjectId }],
+  tokens_associados: [{ type: mongoose.Schema.Types.String }],
   medicos_associados: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   expecialidade: { type: String },
   pconsulta: { type: Number, default: 80 },
